@@ -12,7 +12,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_POSTAL_CODE
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.aiohttp_client import async_get_client_session
 
 from .const import (
     CONF_STATION_ID,
@@ -46,7 +46,7 @@ STEP_STATION_DATA_SCHEMA = vol.Schema(
 async def fetch_stations() -> list[dict[str, Any]]:
     """Fetch stations metadata from MeteoSwiss API."""
     try:
-        session = async_get_clientsession()
+        session = async_get_client_session()
         async with session.get(STATIONS_METADATA_URL) as response:
             if response.status != 200:
                 raise RuntimeError(f"Failed to fetch stations: {response.status}")
