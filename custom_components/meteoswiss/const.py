@@ -28,7 +28,7 @@ DEFAULT_UPDATE_INTERVAL: Final = 600  # 10 minutes
 MIN_UPDATE_INTERVAL: Final = 600
 
 # Config keys
-CONF_POSTAL_CODE: Final = "postal_code"
+CONF_POSTCODE: Final = "postal_code"
 CONF_STATION_ID: Final = "station_id"
 CONF_STATION_NAME: Final = "station_name"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
