@@ -34,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {}
 
     # Create API client
-    client = MeteoSwissClient(hass, entry)
+    client = MeteoSwissClient(hass=hass, entry=entry, session=None)
 
     # Store client
     hass.data[DOMAIN][entry.entry_id]["client"] = client
