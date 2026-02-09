@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import logging
+import tempfile
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -27,6 +29,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# MeteoSwiss CSV parameter IDs
+PARAM_TEMPERATURE = "tre200s0"  # Temperatur 2m, 10min
+PARAM_HUMIDITY = "ure200s0"  # Luftfeuchtigkeit 2m, 10min
+PARAM_WIND_SPEED = "fu3010z0"  # Windgeschwindigkeit, 10min
+PARAM_WIND_DIR = "dkl010z0"  # Windrichtung, 10min
+PARAM_PRESSURE = "prestas0"  # Luftdruck (Station)
+
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from MeteoSwiss API."""
@@ -39,7 +48,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         session: aiohttp.ClientSession,
     ) -> None:
         """Initialize."""
-        self.station_id = station_id
+        self.station_id = station_id.lower()  # STAC API uses lowercase IDs
         self.session = session
         self._last_update: datetime | None = None
 
@@ -59,56 +68,70 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=update_interval),
         )
 
-    async def _async_get_station_data(self) -> dict[str, Any] | None:
-        """Fetch current weather data for the station."""
-        # STAC endpoint for station data
-        url = f"{API_BASE}/collections/{STAC_COLLECTION}/items"
-
+    async def _async_get_station_data_url(self) -> str | None:
+        """Fetch the 10-minute CSV URL for the station."""
         try:
+            url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
             async with self.session.get(url) as response:
                 if response.status != 200:
-                    _LOGGER.error("Failed to fetch station data: %s", response.status)
+                    _LOGGER.error("Failed to fetch station info: %s", response.status)
                     return None
 
                 data = await response.json()
 
-                # Find our station in the features
-                for feature in data.get("features", []):
-                    if feature.get("id") == self.station_id:
-                        return feature.get("properties", {})
+                # Find the t_recent.csv asset
+                assets = data.get("assets", {})
+                asset_key = f"ogd-smn_{self.station_id}_t_recent.csv"
 
-                _LOGGER.warning("Station %s not found in response", self.station_id)
+                if asset_key in assets:
+                    return assets[asset_key].get("href")
+
+                _LOGGER.warning("No t_recent.csv found for station %s", self.station_id)
                 return None
 
         except asyncio.TimeoutError:
-            _LOGGER.error("Timeout fetching station data")
+            _LOGGER.error("Timeout fetching station info")
             return None
         except Exception as err:
-            _LOGGER.error("Error fetching station data: %s", err)
+            _LOGGER.error("Error fetching station info: %s", err)
             return None
 
-    async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API."""
-        _LOGGER.debug("Fetching data for station %s", self.station_id)
+    async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
+        """Download CSV and parse the latest values."""
+        try:
+            async with self.session.get(csv_url) as response:
+                if response.status != 200:
+                    _LOGGER.error("Failed to download CSV: %s", response.status)
+                    return None
 
-        station_data = await self._async_get_station_data()
+                content = await response.text()
 
-        if station_data is None:
-            raise UpdateFailed("Failed to fetch station data")
+            # Parse CSV (semicolon-separated)
+            lines = content.strip().split("\n")
 
-        # Parse and normalize the data
-        parsed_data = self._parse_station_data(station_data)
+            if len(lines) < 2:
+                _LOGGER.error("CSV has no data lines")
+                return None
 
-        if not parsed_data:
-            raise UpdateFailed("No valid data received")
+            # Parse header
+            reader = csv.DictReader(lines, delimiter=";")
+            rows = list(reader)
 
-        self._last_update = datetime.now()
-        _LOGGER.debug("Successfully updated data for station %s", self.station_id)
+            if not rows:
+                _LOGGER.error("CSV parsed to empty list")
+                return None
 
-        return parsed_data
+            # Get the most recent row (last one)
+            latest = rows[-1]
 
-    def _parse_station_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Parse station data into a normalized format."""
+            return self._parse_csv_row(latest)
+
+        except Exception as err:
+            _LOGGER.error("Error parsing CSV: %s", err)
+            return None
+
+    def _parse_csv_row(self, row: dict[str, str]) -> dict[str, Any]:
+        """Parse a CSV row into normalized data."""
         try:
             result = {
                 SENSOR_TEMPERATURE: None,
@@ -117,38 +140,78 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 SENSOR_WIND_DIRECTION: None,
                 SENSOR_PRECIPITATION: None,
                 SENSOR_PRESSURE: None,
+                "last_update": None,
             }
 
-            # Extract values from MeteoSwiss data format
-            # The data comes in a specific format that needs to be parsed
-            # This is a simplified version - will need to be adjusted based on actual API response
+            # Parse temperature (in °C)
+            if PARAM_TEMPERATURE in row and row[PARAM_TEMPERATURE]:
+                try:
+                    result[SENSOR_TEMPERATURE] = float(row[PARAM_TEMPERATURE])
+                except ValueError:
+                    pass
 
-            if "temperature" in data:
-                result[SENSOR_TEMPERATURE] = float(data["temperature"])
+            # Parse humidity (in %)
+            if PARAM_HUMIDITY in row and row[PARAM_HUMIDITY]:
+                try:
+                    result[SENSOR_HUMIDITY] = float(row[PARAM_HUMIDITY])
+                except ValueError:
+                    pass
 
-            if "humidity" in data:
-                result[SENSOR_HUMIDITY] = float(data["humidity"])
+            # Parse wind speed (in km/h)
+            if PARAM_WIND_SPEED in row and row[PARAM_WIND_SPEED]:
+                try:
+                    result[SENSOR_WIND_SPEED] = float(row[PARAM_WIND_SPEED])
+                except ValueError:
+                    pass
 
-            if "wind_speed" in data:
-                result[SENSOR_WIND_SPEED] = float(data["wind_speed"])
+            # Parse wind direction (in degrees)
+            if PARAM_WIND_DIR in row and row[PARAM_WIND_DIR]:
+                try:
+                    result[SENSOR_WIND_DIRECTION] = int(float(row[PARAM_WIND_DIR]))
+                except ValueError:
+                    pass
 
-            if "wind_direction" in data:
-                result[SENSOR_WIND_DIRECTION] = int(data["wind_direction"])
+            # Parse pressure (in hPa)
+            if PARAM_PRESSURE in row and row[PARAM_PRESSURE]:
+                try:
+                    result[SENSOR_PRESSURE] = float(row[PARAM_PRESSURE])
+                except ValueError:
+                    pass
 
-            if "precipitation" in data:
-                result[SENSOR_PRECIPITATION] = float(data["precipitation"])
-
-            if "pressure" in data:
-                result[SENSOR_PRESSURE] = float(data["pressure"])
-
-            # Add timestamp
-            if "timestamp" in data:
-                result["last_update"] = data["timestamp"]
-            else:
-                result["last_update"] = datetime.now().isoformat()
+            # Parse timestamp
+            if "reference_timestamp" in row and row["reference_timestamp"]:
+                try:
+                    # Parse German date format: "01.01.2025 00:00"
+                    timestamp_str = row["reference_timestamp"]
+                    # Convert to ISO format
+                    dt = datetime.strptime(timestamp_str, "%d.%m.%Y %H:%M")
+                    result["last_update"] = dt.isoformat()
+                except ValueError:
+                    result["last_update"] = datetime.now().isoformat()
 
             return result
 
-        except (ValueError, KeyError, TypeError) as err:
-            _LOGGER.error("Error parsing station data: %s", err)
+        except Exception as err:
+            _LOGGER.error("Error parsing CSV row: %s", err)
             return {}
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch data from API."""
+        _LOGGER.debug("Fetching data for station %s", self.station_id)
+
+        # Get CSV URL
+        csv_url = await self._async_get_station_data_url()
+
+        if csv_url is None:
+            raise UpdateFailed("Could not find station data URL")
+
+        # Download and parse CSV
+        parsed_data = await self._async_download_and_parse_csv(csv_url)
+
+        if parsed_data is None or not parsed_data:
+            raise UpdateFailed("Failed to parse station data")
+
+        self._last_update = datetime.now()
+        _LOGGER.debug("Successfully updated data for station %s", self.station_id)
+
+        return parsed_data

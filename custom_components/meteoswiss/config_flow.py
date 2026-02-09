@@ -1,6 +1,8 @@
 """Config flow for MeteoSwiss integration."""
 from __future__ import annotations
 
+import asyncio
+import csv
 import logging
 from typing import Any
 
@@ -42,31 +44,58 @@ STEP_STATION_DATA_SCHEMA = vol.Schema(
 
 async def fetch_stations() -> list[dict[str, Any]]:
     """Fetch stations metadata from MeteoSwiss API."""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(STATIONS_METADATA_URL) as response:
-            if response.status != 200:
-                raise RuntimeError(f"Failed to fetch stations: {response.status}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(STATIONS_METADATA_URL) as response:
+                if response.status != 200:
+                    raise RuntimeError(f"Failed to fetch stations: {response.status}")
 
-            content = await response.text()
+                content = await response.text()
 
-    # Parse CSV - simple parsing for metadata
-    stations = []
-    lines = content.strip().split("\n")
+        # Parse CSV - semicolon separated
+        lines = content.strip().split("\n")
 
-    # Skip header
-    for line in lines[1:]:
-        parts = line.split(";")
-        if len(parts) >= 4:
-            stations.append(
-                {
-                    "id": parts[0].strip('"'),
-                    "name": parts[1].strip('"'),
-                    "altitude": parts[2].strip('"'),
-                    "coordinates": parts[3].strip('"'),
-                }
-            )
+        if len(lines) < 2:
+            return []
 
-    return stations
+        # Parse header
+        headers = [h.strip('"') for h in lines[0].split(";")]
+
+        stations = []
+
+        # Parse rows
+        for line in lines[1:]:
+            parts = line.split(";")
+            if len(parts) >= 3:
+                # Station ID is first column, Name is second
+                station_id = parts[0].strip('"')
+                station_name = parts[1].strip('"')
+
+                # Canton is third column - filter for German-speaking cantons if needed
+                canton = parts[2].strip('"')
+
+                # Height is 8th column (index 7)
+                try:
+                    height = parts[7] if len(parts) > 7 else "N/A"
+                except IndexError:
+                    height = "N/A"
+
+                if station_id and station_name:
+                    stations.append(
+                        {
+                            "id": station_id.lower(),  # STAC API uses lowercase
+                            "name": station_name,
+                            "canton": canton,
+                            "height": height,
+                        }
+                    )
+
+        _LOGGER.info("Fetched %d stations", len(stations))
+        return stations
+
+    except Exception as err:
+        _LOGGER.error("Error fetching stations: %s", err)
+        return []
 
 
 class MeteoSwissConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -83,20 +112,19 @@ class MeteoSwissConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
+        """Handle initial step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             self._postal_code = user_input[CONF_POSTAL_CODE]
 
-            # Fetch stations based on postal code
+            # Fetch all stations
             try:
                 self._stations = await fetch_stations()
 
                 if not self._stations:
                     errors["base"] = "cannot_connect"
                 else:
-                    # Find nearby stations based on postal code
                     # For now, show all stations (can be improved with geocoding)
                     return await self.async_step_station()
 
@@ -140,7 +168,7 @@ class MeteoSwissConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Prepare station options for UI
         station_options = {
-            s["id"]: f"{s['name']} ({s['altitude']}m)" for s in self._stations
+            s["id"]: f"{s['name']} ({s['height']}m)" for s in self._stations
         }
 
         return self.async_show_form(

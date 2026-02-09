@@ -12,10 +12,10 @@ VERSION: Final = "1.0.0"
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"
 STAC_COLLECTION: Final = "ch.meteoschweiz.ogd-smn"
 STATIONS_METADATA_URL: Final = (
-    f"{API_BASE}/collections/{STAC_COLLECTION}/items/ogd-smn_meta_stations.csv"
+    "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv"
 )
 PARAMETERS_METADATA_URL: Final = (
-    f"{API_BASE}/collections/{STAC_COLLECTION}/items/ogd-smn_meta_parameters.csv"
+    "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_parameters.csv"
 )
 
 # Data granularity (t=10min, h=hourly, d=daily)
