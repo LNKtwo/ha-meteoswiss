@@ -64,8 +64,8 @@ Die Integration erstellt folgende Entities:
 
 ## Support
 
-- **GitHub:** https://github.com/AlexPEClub/ha-meteoswiss
-- **Issues:** https://github.com/AlexPEClub/ha-meteoswiss/issues
+- **GitHub:** https://github.com/LNKtwo/ha-meteoswiss
+- **Issues:** https://github.com/LNKtwo/ha-meteoswiss/issues
 
 ## License
 
