@@ -1,0 +1,3 @@
+refresh_data:
+  description: Manually refresh MeteoSwiss data.
+  fields: {}

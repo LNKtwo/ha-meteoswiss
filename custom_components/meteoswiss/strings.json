@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MeteoSwiss Setup",
+        "description": "Enter your postal code to find nearby weather stations.",
+        "data": {
+          "postal_code": "Postal Code"
+        }
+      },
+      "station": {
+        "title": "Select Weather Station",
+        "description": "Choose the weather station closest to your location.",
+        "data": {
+          "station_id": "Weather Station",
+          "update_interval": "Update Interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to MeteoSwiss API",
+      "station_not_found": "Station not found"
+    }
+  },
+  "title": "MeteoSwiss",
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_direction": {
+        "name": "Wind Direction"
+      },
+      "precipitation": {
+        "name": "Precipitation"
+      },
+      "pressure": {
+        "name": "Pressure"
+      }
+    }
+  }
+}
