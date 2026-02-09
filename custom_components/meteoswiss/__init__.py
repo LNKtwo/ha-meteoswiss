@@ -17,20 +17,18 @@ from .const import (
     DOMAIN,
 )
 from .pollen import MeteoSwissClient
-from .coordinator import MeteoSwissDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.WEATHER,
-    Platform.POLLEN,
 ]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MeteoSwiss from a config entry."""
-    _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get(CONF_STATION_NAME))
+    _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get("station_name"))
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
@@ -38,29 +36,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create API client
     client = MeteoSwissClient(hass, entry)
 
-    # Create coordinator
-    update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 600)
-    station_id = entry.data[CONF_STATION_ID]
-
-    coordinator = MeteoSwissDataUpdateCoordinator(
-        hass,
-        station_id=station_id,
-        update_interval=update_interval,
-        session=aiohttp.ClientSession(),
-    )
-
-    # Fetch initial data
-    await coordinator.async_config_entry_first_refresh()
-
-    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
-    hass.data[DOMAIN][entry.entry_id]["session"] = coordinator._session
+    # Store client
     hass.data[DOMAIN][entry.entry_id]["client"] = client
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Update listeners for reload
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
@@ -72,11 +52,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        # Close aiohttp session and client
-        session = hass.data[DOMAIN][entry.entry_id].get("session")
+        # Close client
         client = hass.data[DOMAIN][entry.entry_id].get("client")
-        if session:
-            await session.close()
         if client:
             await client.close()
 
