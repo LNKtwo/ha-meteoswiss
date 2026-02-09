@@ -1,4 +1,4 @@
-"""Weather platform for MeteoSwiss integration."""
+"""Weather platform for meteoswiss integration."""
 from __future__ import annotations
 
 import logging
@@ -12,6 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    ATTRIBUTION,
     CONF_STATION_NAME,
     DOMAIN,
     SENSOR_HUMIDITY,
@@ -25,7 +26,7 @@ from .coordinator import MeteoSwissDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-# Condition mapping based on MeteoSwiss data
+# Condition mapping
 CONDITION_MAP: Final = {
     "clear": "sunny",
     "cloudy": "cloudy",
@@ -40,7 +41,7 @@ async def async_setup_entry(
 ) -> bool:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    station_name = entry.data[CONF_STATION_NAME]
+    station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
     hass.data[DOMAIN][entry.entry_id]["weather_entity"] = MeteoSwissWeather(
         coordinator, entry, station_name
@@ -51,7 +52,7 @@ async def async_setup_entry(
 
 
 class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], WeatherEntity):
-    """Representation of MeteoSwiss weather data."""
+    """Representation of meteoswiss weather data."""
 
     def __init__(
         self,
@@ -69,7 +70,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         )
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_weather"
         self._attr_has_entity_name = True
-        self._attr_name = None
         self._attr_attribution = ATTRIBUTION
 
         # Set units
@@ -92,7 +92,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             self._attr_native_precipitation = data.get(SENSOR_PRECIPITATION)
 
             # Determine condition based on data
-            # This is a simplified logic - will need to be enhanced
             self._attr_condition = self._determine_condition(data)
 
         super()._handle_coordinator_update()

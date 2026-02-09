@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import csv
 import logging
-import tempfile
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -15,6 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     API_BASE,
+    CONF_POSTAL_CODE,
     DOMAIN,
     GRANULARITY_10MIN,
     MIN_UPDATE_INTERVAL,
@@ -45,12 +45,11 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         hass: HomeAssistant,
         station_id: str,
         update_interval: int,
-        session: aiohttp.ClientSession,
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         """Initialize."""
-        self.station_id = station_id.lower()  # STAC API uses lowercase IDs
-        self.session = session
-        self._last_update: datetime | None = None
+        self.station_id = station_id.lower()  # STAC API uses lowercase
+        self._session = session
 
         # Ensure minimum update interval
         if update_interval < MIN_UPDATE_INTERVAL:
@@ -70,9 +69,12 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_get_station_data_url(self) -> str | None:
         """Fetch the 10-minute CSV URL for the station."""
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+
         try:
             url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
-            async with self.session.get(url) as response:
+            async with self._session.get(url) as response:
                 if response.status != 200:
                     _LOGGER.error("Failed to fetch station info: %s", response.status)
                     return None
@@ -98,8 +100,11 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
         """Download CSV and parse the latest values."""
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+
         try:
-            async with self.session.get(csv_url) as response:
+            async with self._session.get(csv_url) as response:
                 if response.status != 200:
                     _LOGGER.error("Failed to download CSV: %s", response.status)
                     return None
@@ -215,3 +220,9 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         _LOGGER.debug("Successfully updated data for station %s", self.station_id)
 
         return parsed_data
+
+    async def async_close(self) -> None:
+        """Close aiohttp session."""
+        if self._session is not None:
+            await self._session.close()
+            self._session = None

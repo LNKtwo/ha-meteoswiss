@@ -1,4 +1,4 @@
-"""The MeteoSwiss integration."""
+"""The meteoswiss integration."""
 from __future__ import annotations
 
 import logging
@@ -9,12 +9,14 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_POSTCODE,
+    CONF_POSTAL_CODE,
+    CONF_POLLEN_STATION_CODE,
     CONF_STATION_ID,
     CONF_STATION_NAME,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
 )
+from .pollen import MeteoSwissClient
 from .coordinator import MeteoSwissDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,18 +24,19 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.WEATHER,
+    Platform.POLLEN,
 ]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MeteoSwiss from a config entry."""
-    _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data[CONF_STATION_NAME])
+    _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get(CONF_STATION_NAME))
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
 
-    # Create aiohttp session
-    session = aiohttp.ClientSession()
+    # Create API client
+    client = MeteoSwissClient(hass, entry)
 
     # Create coordinator
     update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 600)
@@ -43,14 +46,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         station_id=station_id,
         update_interval=update_interval,
-        session=session,
+        session=aiohttp.ClientSession(),
     )
 
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
-    hass.data[DOMAIN][entry.entry_id]["session"] = session
+    hass.data[DOMAIN][entry.entry_id]["session"] = coordinator._session
+    hass.data[DOMAIN][entry.entry_id]["client"] = client
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -68,10 +72,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        # Close aiohttp session
+        # Close aiohttp session and client
         session = hass.data[DOMAIN][entry.entry_id].get("session")
+        client = hass.data[DOMAIN][entry.entry_id].get("client")
         if session:
             await session.close()
+        if client:
+            await client.close()
 
         hass.data[DOMAIN].pop(entry.entry_id)
 

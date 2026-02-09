@@ -1,4 +1,4 @@
-"""Constants for MeteoSwiss integration."""
+"""Constants for meteoswiss integration."""
 
 from __future__ import annotations
 
@@ -24,15 +24,16 @@ GRANULARITY_HOURLY: Final = "h"
 GRANULARITY_DAILY: Final = "d"
 
 # Update frequency (seconds)
-DEFAULT_UPDATE_INTERVAL: Final = 600  #10 minutes
+DEFAULT_UPDATE_INTERVAL: Final = 600  # 10 minutes
 MIN_UPDATE_INTERVAL: Final = 600
 
 # Config keys
 CONF_POSTAL_CODE: Final = "postal_code"
-CONF_POSTCODE: Final = "postal_code"  # Alias for HA compatibility
+CONF_POSTCODE: Final = "postal_code"  # Alias for compatibility
 CONF_STATION_ID: Final = "station_id"
 CONF_STATION_NAME: Final = "station_name"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
+CONF_POLLEN_STATION_CODE: Final = "polen_station_code"
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL_SEC: Final = 600

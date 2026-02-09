@@ -1,4 +1,4 @@
-"""Sensor platform for MeteoSwiss integration."""
+"""Sensor platform for meteoswiss integration."""
 from __future__ import annotations
 
 import logging
@@ -41,7 +41,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class MeteoSwissSensorEntityDescription(SensorEntityDescription):
-    """Describes MeteoSwiss sensor entity."""
+    """Describes meteoswiss sensor entity."""
 
     value_key: str | None = None
 
@@ -103,7 +103,7 @@ async def async_setup_entry(
 ) -> bool:
     """Set up sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    station_name = entry.data[CONF_STATION_NAME]
+    station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
     hass.data[DOMAIN][entry.entry_id]["sensor_entities"] = [
         MeteoSwissSensor(coordinator, entry, description, station_name)
@@ -115,7 +115,7 @@ async def async_setup_entry(
 
 
 class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], SensorEntity):
-    """Representation of a MeteoSwiss sensor."""
+    """Representation of a meteoswiss sensor."""
 
     def __init__(
         self,
@@ -135,6 +135,7 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
             model="SwissMetNet",
         )
         self._attr_has_entity_name = True
+        self._attr_attribution = ATTRIBUTION
 
     @callback
     def _handle_coordinator_update(self) -> None:
