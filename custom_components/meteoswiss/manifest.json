@@ -1,11 +1,15 @@
 {
   "domain": "meteoswiss",
   "name": "MeteoSwiss",
-  "version": "1.0.4",
+  "version": "1.0.10",
   "documentation": "https://github.com/LNKtwo/ha-meteoswiss",
   "issue_tracker": "https://github.com/LNKtwo/ha-meteoswiss/issues",
-  "codeowners": ["@LNKtwo"],
-  "requirements": ["aiohttp>=3.8.0"],
+  "codeowners": [
+    "@LNKtwo"
+  ],
+  "requirements": [
+    "aiohttp>=3.8.0"
+  ],
   "config_flow": true,
   "iot_class": "local_polling"
 }
