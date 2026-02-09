@@ -59,7 +59,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         entry: ConfigEntry,
         station_name: str,
     ) -> None:
-        """Initialize the weather entity."""
+        """Initialize weather entity."""
         super().__init__(coordinator)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -79,7 +79,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
+        """Handle updated data from coordinator."""
         if self.coordinator.data:
             data = self.coordinator.data
 

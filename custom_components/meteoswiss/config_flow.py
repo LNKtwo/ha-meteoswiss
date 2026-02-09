@@ -9,9 +9,10 @@ from typing import Any
 import aiohttp
 import voluptuous as vol
 
-from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_POSTAL_CODE
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_STATION_ID,
@@ -45,21 +46,18 @@ STEP_STATION_DATA_SCHEMA = vol.Schema(
 async def fetch_stations() -> list[dict[str, Any]]:
     """Fetch stations metadata from MeteoSwiss API."""
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(STATIONS_METADATA_URL) as response:
-                if response.status != 200:
-                    raise RuntimeError(f"Failed to fetch stations: {response.status}")
+        session = async_get_clientsession()
+        async with session.get(STATIONS_METADATA_URL) as response:
+            if response.status != 200:
+                raise RuntimeError(f"Failed to fetch stations: {response.status}")
 
-                content = await response.text()
+            content = await response.text()
 
         # Parse CSV - semicolon separated
         lines = content.strip().split("\n")
 
         if len(lines) < 2:
             return []
-
-        # Parse header
-        headers = [h.strip('"') for h in lines[0].split(";")]
 
         stations = []
 
@@ -71,7 +69,7 @@ async def fetch_stations() -> list[dict[str, Any]]:
                 station_id = parts[0].strip('"')
                 station_name = parts[1].strip('"')
 
-                # Canton is third column - filter for German-speaking cantons if needed
+                # Canton is third column
                 canton = parts[2].strip('"')
 
                 # Height is 8th column (index 7)
@@ -98,7 +96,7 @@ async def fetch_stations() -> list[dict[str, Any]]:
         return []
 
 
-class MeteoSwissConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for MeteoSwiss."""
 
     VERSION = 1

@@ -124,7 +124,7 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
         description: MeteoSwissSensorEntityDescription,
         station_name: str,
     ) -> None:
-        """Initialize the sensor."""
+        """Initialize sensor."""
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
@@ -138,7 +138,7 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
+        """Handle updated data from coordinator."""
         if self.coordinator.data:
             value = self.coordinator.data.get(self.entity_description.value_key)
             self._attr_native_value = value
