@@ -7,10 +7,11 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow
-from homeassistant.const import CONF_POSTAL_CODE
+from homeassistant.const import CONF_POSTCODE as HA_CONF_POSTCODE
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CONF_POSTCODE,
     CONF_STATION_ID,
     CONF_STATION_NAME,
     CONF_UPDATE_INTERVAL,
@@ -39,14 +40,14 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
                 step_id="user",
                 data_schema=vol.Schema(
                     {
-                        vol.Required(CONF_POSTAL_CODE): str,
+                        vol.Required(CONF_POSTCODE): str,
                     }
                 ),
                 errors=errors,
             )
 
         # User entered postal code - show manual station selection
-        _LOGGER.info("Postal code entered: %s", user_input[CONF_POSTAL_CODE])
+        _LOGGER.info("Postal code entered: %s", user_input[CONF_POSTCODE])
         return self.async_show_form(
             step_id="station",
             data_schema=vol.Schema(
@@ -107,7 +108,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"MeteoSwiss {station_id}",
             data={
-                CONF_POSTAL_CODE: user_input.get(CONF_POSTAL_CODE, ""),
+                CONF_POSTCODE: user_input.get(CONF_POSTCODE, ""),
                 CONF_STATION_ID: station_id.lower(),
                 CONF_STATION_NAME: station_id,
                 CONF_UPDATE_INTERVAL: update_interval,
