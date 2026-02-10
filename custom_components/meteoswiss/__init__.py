@@ -26,13 +26,8 @@ PLATFORMS: list[Platform] = [
 ]
 
 
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up meteoswiss integration from config flow (legacy)."""
-    _LOGGER.warning("Legacy async_setup() called. Please use Config Flow.")
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up meteoswiss from a config entry."""
+    """Set up MeteoSwiss integration from a config entry."""
     _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get(CONF_STATION_NAME))
 
     hass.data.setdefault(DOMAIN, {})
@@ -52,6 +47,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+    hass.data[DOMAIN][entry.entry_id]["session"] = None
+
+    # Set up platforms
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Update listeners for reload
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
