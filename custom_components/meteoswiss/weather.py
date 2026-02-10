@@ -74,6 +74,11 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         self._attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR
 
     @property
+    def coordinator_data(self) -> dict:
+        """Return coordinator data."""
+        return self.coordinator.data if self.coordinator else {}
+
+    @property
     def condition(self) -> str | None:
         """Return the current condition."""
         if self.coordinator_data:
