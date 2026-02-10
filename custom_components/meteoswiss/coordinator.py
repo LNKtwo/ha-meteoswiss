@@ -87,14 +87,19 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 data = await response.json()
 
-                # Find the t_recent.csv asset
+                # Find the t_now.csv asset (most recent 10-min data)
                 assets = data.get("assets", {})
-                asset_key = f"ogd-smn_{self.station_id}_t_recent.csv"
+                asset_key = f"ogd-smn_{self.station_id}_t_now.csv"
 
                 if asset_key in assets:
                     return assets[asset_key].get("href")
 
-                _LOGGER.warning("No t_recent.csv found for station %s", self.station_id)
+                # Fallback to t_recent.csv if t_now.csv not available
+                asset_key = f"ogd-smn_{self.station_id}_t_recent.csv"
+                if asset_key in assets:
+                    return assets[asset_key].get("href")
+
+                _LOGGER.warning("No t_now.csv or t_recent.csv found for station %s", self.station_id)
                 return None
 
         except asyncio.TimeoutError:
