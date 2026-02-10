@@ -6,6 +6,8 @@ import logging
 from typing import Any
 
 import aiohttp
+from aiohttp import TCPConnector
+
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow
@@ -23,6 +25,10 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# SSL connector for systems with outdated certificates
+# This is a fallback for systems that cannot update CA certificates
+_SSL_CONNECTOR = TCPConnector(ssl=False)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -50,7 +56,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
             return self._stations
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=_SSL_CONNECTOR) as session:
                 async with session.get(STATIONS_METADATA_URL) as response:
                     if response.status != 200:
                         _LOGGER.error("Failed to load stations: %s", response.status)
