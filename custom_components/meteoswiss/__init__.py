@@ -26,15 +26,17 @@ PLATFORMS: list[Platform] = [
 ]
 
 
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up meteoswiss integration from config flow (legacy)."""
+    _LOGGER.warning("Legacy async_setup() called. Please use Config Flow.")
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up meteoswiss from a config entry."""
     _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get(CONF_STATION_NAME))
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
-
-    # Create aiohttp session
-    session = aiohttp.ClientSession()
 
     # Create coordinator
     update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 600)
@@ -44,20 +46,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         station_id=station_id,
         update_interval=update_interval,
-        session=session,
     )
 
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
-    hass.data[DOMAIN][entry.entry_id]["session"] = session
-
-    # Set up platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Update listeners for reload
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
@@ -69,11 +63,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        # Close aiohttp session
-        session = hass.data[DOMAIN][entry.entry_id].get("session")
-        if session:
-            await session.close()
-
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
