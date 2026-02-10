@@ -130,7 +130,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.error("CSV has no data lines")
                 return None
 
-            # Parse header
+            # Parse header and data rows
             reader = csv.DictReader(lines, delimiter=";")
             rows = list(reader)
 
@@ -140,11 +140,17 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Get the most recent row (last one)
             latest = rows[-1]
+            _LOGGER.debug("Latest CSV row: %s", latest)
 
-            return self._parse_csv_row(latest)
+            parsed = self._parse_csv_row(latest)
+            _LOGGER.debug("Parsed data: %s", parsed)
+
+            return parsed
 
         except Exception as err:
             _LOGGER.error("Error parsing CSV: %s", err)
+            import traceback
+            _LOGGER.error("Traceback: %s", traceback.format_exc())
             return None
 
     def _parse_csv_row(self, row: dict[str, str]) -> dict[str, Any]:
@@ -161,39 +167,49 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
             # Parse temperature (in °C)
-            if PARAM_TEMPERATURE in row and row[PARAM_TEMPERATURE]:
-                try:
-                    result[SENSOR_TEMPERATURE] = float(row[PARAM_TEMPERATURE])
-                except ValueError:
-                    pass
+            if PARAM_TEMPERATURE in row:
+                temp_value = row[PARAM_TEMPERATURE]
+                if temp_value and temp_value.strip():
+                    try:
+                        result[SENSOR_TEMPERATURE] = float(temp_value)
+                    except (ValueError, TypeError):
+                        _LOGGER.debug("Could not parse temperature: %s", temp_value)
 
             # Parse humidity (in %)
-            if PARAM_HUMIDITY in row and row[PARAM_HUMIDITY]:
-                try:
-                    result[SENSOR_HUMIDITY] = float(row[PARAM_HUMIDITY])
-                except ValueError:
-                    pass
+            if PARAM_HUMIDITY in row:
+                hum_value = row[PARAM_HUMIDITY]
+                if hum_value and hum_value.strip():
+                    try:
+                        result[SENSOR_HUMIDITY] = float(hum_value)
+                    except (ValueError, TypeError):
+                        _LOGGER.debug("Could not parse humidity: %s", hum_value)
 
             # Parse wind speed (in km/h)
-            if PARAM_WIND_SPEED in row and row[PARAM_WIND_SPEED]:
-                try:
-                    result[SENSOR_WIND_SPEED] = float(row[PARAM_WIND_SPEED])
-                except ValueError:
-                    pass
+            if PARAM_WIND_SPEED in row:
+                wind_value = row[PARAM_WIND_SPEED]
+                if wind_value and wind_value.strip():
+                    try:
+                        result[SENSOR_WIND_SPEED] = float(wind_value)
+                    except (ValueError, TypeError):
+                        _LOGGER.debug("Could not parse wind speed: %s", wind_value)
 
             # Parse wind direction (in degrees)
-            if PARAM_WIND_DIR in row and row[PARAM_WIND_DIR]:
-                try:
-                    result[SENSOR_WIND_DIRECTION] = int(float(row[PARAM_WIND_DIR]))
-                except ValueError:
-                    pass
+            if PARAM_WIND_DIR in row:
+                dir_value = row[PARAM_WIND_DIR]
+                if dir_value and dir_value.strip():
+                    try:
+                        result[SENSOR_WIND_DIRECTION] = int(float(dir_value))
+                    except (ValueError, TypeError):
+                        _LOGGER.debug("Could not parse wind direction: %s", dir_value)
 
             # Parse pressure (in hPa)
-            if PARAM_PRESSURE in row and row[PARAM_PRESSURE]:
-                try:
-                    result[SENSOR_PRESSURE] = float(row[PARAM_PRESSURE])
-                except ValueError:
-                    pass
+            if PARAM_PRESSURE in row:
+                press_value = row[PARAM_PRESSURE]
+                if press_value and press_value.strip():
+                    try:
+                        result[SENSOR_PRESSURE] = float(press_value)
+                    except (ValueError, TypeError):
+                        _LOGGER.debug("Could not parse pressure: %s", press_value)
 
             # Parse timestamp
             if "reference_timestamp" in row and row["reference_timestamp"]:
