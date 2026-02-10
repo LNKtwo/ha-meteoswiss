@@ -74,9 +74,9 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
     MeteoSwissSensorEntityDescription(
         key=SENSOR_WIND_DIRECTION,
         translation_key="wind_direction",
-        device_class=SensorDeviceClass.WIND_SPEED,
+        device_class=None,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfLength.METERS,
+        native_unit_of_measurement="°",
         value_key=SENSOR_WIND_DIRECTION,
     ),
     MeteoSwissSensorEntityDescription(
