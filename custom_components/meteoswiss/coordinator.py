@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import aiohttp
+from aiohttp import TCPConnector
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -28,6 +29,10 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# SSL connector for systems with outdated certificates
+# This is a fallback for systems that cannot update CA certificates
+_SSL_CONNECTOR = TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs
 PARAM_TEMPERATURE = "tre200s0"  # Temperatur 2m, 10min
@@ -70,7 +75,8 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_get_station_data_url(self) -> str | None:
         """Fetch the 10-minute CSV URL for the station."""
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            # Use SSL disabled connector for systems with outdated certificates
+            self._session = aiohttp.ClientSession(connector=_SSL_CONNECTOR)
 
         try:
             url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
@@ -101,7 +107,8 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
         """Download CSV and parse the latest values."""
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            # Use SSL disabled connector for systems with outdated certificates
+            self._session = aiohttp.ClientSession(connector=_SSL_CONNECTOR)
 
         try:
             async with self._session.get(csv_url) as response:

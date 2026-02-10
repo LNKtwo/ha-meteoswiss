@@ -1,7 +1,7 @@
 {
   "domain": "meteoswiss",
   "name": "MeteoSwiss",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "documentation": "https://github.com/LNKtwo/ha-meteoswiss",
   "issue_tracker": "https://github.com/LNKtwo/ha-meteoswiss/issues",
   "codeowners": ["@LNKtwo"],
