@@ -80,6 +80,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
+            _LOGGER.debug("Fetching station info from: %s", url)
             async with self._session.get(url) as response:
                 if response.status != 200:
                     _LOGGER.error("Failed to fetch station info: %s", response.status)
@@ -92,12 +93,16 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 asset_key = f"ogd-smn_{self.station_id}_t_now.csv"
 
                 if asset_key in assets:
-                    return assets[asset_key].get("href")
+                    csv_url = assets[asset_key].get("href")
+                    _LOGGER.info("Found CSV URL: %s", csv_url)
+                    return csv_url
 
                 # Fallback to t_recent.csv if t_now.csv not available
                 asset_key = f"ogd-smn_{self.station_id}_t_recent.csv"
                 if asset_key in assets:
-                    return assets[asset_key].get("href")
+                    csv_url = assets[asset_key].get("href")
+                    _LOGGER.info("Found CSV URL (fallback): %s", csv_url)
+                    return csv_url
 
                 _LOGGER.warning("No t_now.csv or t_recent.csv found for station %s", self.station_id)
                 return None
@@ -107,6 +112,8 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
         except Exception as err:
             _LOGGER.error("Error fetching station info: %s", err)
+            import traceback
+            _LOGGER.error(traceback.format_exc())
             return None
 
     async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
@@ -116,6 +123,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._session = aiohttp.ClientSession(connector=_SSL_CONNECTOR)
 
         try:
+            _LOGGER.debug("Downloading CSV from: %s", csv_url)
             async with self._session.get(csv_url) as response:
                 if response.status != 200:
                     _LOGGER.error("Failed to download CSV: %s", response.status)
@@ -123,34 +131,53 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 content = await response.text()
 
-            # Parse CSV (semicolon-separated)
+            _LOGGER.debug("CSV content length: %d chars", len(content))
+
+            # Parse CSV (semicolon-separated) manually
             lines = content.strip().split("\n")
 
             if len(lines) < 2:
-                _LOGGER.error("CSV has no data lines")
+                _LOGGER.error("CSV has no data lines (found %d lines)", len(lines))
                 return None
 
-            # Parse header and data rows
-            reader = csv.DictReader(lines, delimiter=";")
-            rows = list(reader)
+            # Get header line
+            header_line = lines[0]
+            headers = [h.strip() for h in header_line.split(";")]
 
-            if not rows:
-                _LOGGER.error("CSV parsed to empty list")
+            _LOGGER.debug("CSV headers: %s", headers)
+
+            # Get the most recent data row (last non-empty line)
+            data_row = None
+            for line in reversed(lines[1:]):
+                if line.strip():
+                    data_row = line.strip()
+                    break
+
+            if not data_row:
+                _LOGGER.error("No valid data row found")
                 return None
 
-            # Get the most recent row (last one)
-            latest = rows[-1]
-            _LOGGER.debug("Latest CSV row: %s", latest)
+            # Parse the data row
+            values = [v.strip() for v in data_row.split(";")]
 
-            parsed = self._parse_csv_row(latest)
-            _LOGGER.debug("Parsed data: %s", parsed)
+            _LOGGER.debug("CSV values: %s", values)
+            _LOGGER.debug("Data row: %s", data_row[:200] if len(data_row) > 200 else data_row)
 
-            return parsed
+            # Create a dictionary of the row
+            row_dict = {}
+            for i, header in enumerate(headers):
+                if i < len(values):
+                    row_dict[header] = values[i]
+
+            _LOGGER.debug("Row dictionary keys: %s", list(row_dict.keys()))
+
+            # Parse the data
+            return self._parse_csv_row(row_dict)
 
         except Exception as err:
             _LOGGER.error("Error parsing CSV: %s", err)
             import traceback
-            _LOGGER.error("Traceback: %s", traceback.format_exc())
+            _LOGGER.error(traceback.format_exc())
             return None
 
     def _parse_csv_row(self, row: dict[str, str]) -> dict[str, Any]:
@@ -167,70 +194,83 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
             # Parse temperature (in °C)
-            if PARAM_TEMPERATURE in row:
-                temp_value = row[PARAM_TEMPERATURE]
-                if temp_value and temp_value.strip():
-                    try:
-                        result[SENSOR_TEMPERATURE] = float(temp_value)
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Could not parse temperature: %s", temp_value)
+            temp_value = row.get(PARAM_TEMPERATURE)
+            if temp_value and temp_value.strip():
+                try:
+                    result[SENSOR_TEMPERATURE] = float(temp_value)
+                    _LOGGER.debug("Parsed temperature: %s °C", result[SENSOR_TEMPERATURE])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse temperature '%s': %s", temp_value, e)
 
             # Parse humidity (in %)
-            if PARAM_HUMIDITY in row:
-                hum_value = row[PARAM_HUMIDITY]
-                if hum_value and hum_value.strip():
-                    try:
-                        result[SENSOR_HUMIDITY] = float(hum_value)
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Could not parse humidity: %s", hum_value)
+            hum_value = row.get(PARAM_HUMIDITY)
+            if hum_value and hum_value.strip():
+                try:
+                    result[SENSOR_HUMIDITY] = float(hum_value)
+                    _LOGGER.debug("Parsed humidity: %s %%", result[SENSOR_HUMIDITY])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse humidity '%s': %s", hum_value, e)
 
             # Parse wind speed (in km/h)
-            if PARAM_WIND_SPEED in row:
-                wind_value = row[PARAM_WIND_SPEED]
-                if wind_value and wind_value.strip():
-                    try:
-                        result[SENSOR_WIND_SPEED] = float(wind_value)
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Could not parse wind speed: %s", wind_value)
+            wind_value = row.get(PARAM_WIND_SPEED)
+            if wind_value and wind_value.strip():
+                try:
+                    result[SENSOR_WIND_SPEED] = float(wind_value)
+                    _LOGGER.debug("Parsed wind speed: %s km/h", result[SENSOR_WIND_SPEED])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse wind speed '%s': %s", wind_value, e)
 
             # Parse wind direction (in degrees)
-            if PARAM_WIND_DIR in row:
-                dir_value = row[PARAM_WIND_DIR]
-                if dir_value and dir_value.strip():
-                    try:
-                        result[SENSOR_WIND_DIRECTION] = int(float(dir_value))
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Could not parse wind direction: %s", dir_value)
+            dir_value = row.get(PARAM_WIND_DIR)
+            if dir_value and dir_value.strip():
+                try:
+                    result[SENSOR_WIND_DIRECTION] = int(float(dir_value))
+                    _LOGGER.debug("Parsed wind direction: %s °", result[SENSOR_WIND_DIRECTION])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse wind direction '%s': %s", dir_value, e)
 
             # Parse pressure (in hPa)
-            if PARAM_PRESSURE in row:
-                press_value = row[PARAM_PRESSURE]
-                if press_value and press_value.strip():
-                    try:
-                        result[SENSOR_PRESSURE] = float(press_value)
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Could not parse pressure: %s", press_value)
+            press_value = row.get(PARAM_PRESSURE)
+            if press_value and press_value.strip():
+                try:
+                    result[SENSOR_PRESSURE] = float(press_value)
+                    _LOGGER.debug("Parsed pressure: %s hPa", result[SENSOR_PRESSURE])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse pressure '%s': %s", press_value, e)
 
             # Parse timestamp
-            if "reference_timestamp" in row and row["reference_timestamp"]:
+            timestamp_value = row.get("reference_timestamp")
+            if timestamp_value and timestamp_value.strip():
                 try:
                     # Parse German date format: "01.01.2025 00:00"
-                    timestamp_str = row["reference_timestamp"]
+                    timestamp_str = timestamp_value.strip()
                     # Convert to ISO format
                     dt = datetime.strptime(timestamp_str, "%d.%m.%Y %H:%M")
                     result["last_update"] = dt.isoformat()
-                except ValueError:
+                    _LOGGER.debug("Parsed timestamp: %s", result["last_update"])
+                except ValueError as e:
+                    _LOGGER.error("Could not parse timestamp '%s': %s", timestamp_value, e)
                     result["last_update"] = datetime.now().isoformat()
+
+            # Log final result
+            _LOGGER.info("Parsed result: temp=%s, humidity=%s, wind=%s, dir=%s, pressure=%s",
+                        result[SENSOR_TEMPERATURE],
+                        result[SENSOR_HUMIDITY],
+                        result[SENSOR_WIND_SPEED],
+                        result[SENSOR_WIND_DIRECTION],
+                        result[SENSOR_PRESSURE])
 
             return result
 
         except Exception as err:
             _LOGGER.error("Error parsing CSV row: %s", err)
+            import traceback
+            _LOGGER.error(traceback.format_exc())
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
-        _LOGGER.debug("Fetching data for station %s", self.station_id)
+        _LOGGER.info("Fetching data for station %s", self.station_id)
 
         # Get CSV URL
         csv_url = await self._async_get_station_data_url()
@@ -245,7 +285,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed("Failed to parse station data")
 
         self._last_update = datetime.now()
-        _LOGGER.debug("Successfully updated data for station %s", self.station_id)
+        _LOGGER.info("Successfully updated data for station %s", self.station_id)
 
         return parsed_data
 
