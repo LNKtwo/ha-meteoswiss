@@ -40,7 +40,7 @@ async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities,
-) -> bool:
+) -> None:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
@@ -48,7 +48,6 @@ async def async_setup_entry(
     entity = MeteoSwissWeather(coordinator, entry, station_name)
 
     async_add_entities([entity])
-    return True
 
 
 class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], WeatherEntity):
