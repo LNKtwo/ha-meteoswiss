@@ -30,16 +30,16 @@ _LOGGER = logging.getLogger(__name__)
 CONDITION_MAP: Final = {
     "clear": "sunny",
     "cloudy": "cloudy",
-    "rain": "rainy",
-    "snow": "snowy",
-    "fog": "foggy",
+    "rainy": "rainy",
+    "snowy": "snowy",
+    "foggy": "foggy",
 }
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    **kwargs,
+    *args,
 ) -> bool:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]

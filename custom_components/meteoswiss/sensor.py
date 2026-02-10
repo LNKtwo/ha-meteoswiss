@@ -93,7 +93,7 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    **kwargs,
+    *args,
 ) -> bool:
     """Set up sensor platform."""
     _LOGGER.info("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
