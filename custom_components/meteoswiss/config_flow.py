@@ -25,16 +25,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# SSL connector for systems with outdated certificates (lazy loaded)
-# This is a fallback for systems that cannot update CA certificates
-_ssl_connector: TCPConnector | None = None
-
-def _get_ssl_connector() -> TCPConnector:
-    """Get or create SSL connector (lazy load to avoid blocking import)."""
-    global _ssl_connector
-    if _ssl_connector is None:
-        _ssl_connector = TCPConnector(ssl=False)
-    return _ssl_connector
+def _create_ssl_connector() -> TCPConnector:
+    """Create a new SSL connector for each session to avoid reuse issues."""
+    return TCPConnector(ssl=False)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -66,7 +59,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
             return self._stations
 
         try:
-            async with aiohttp.ClientSession(connector=_get_ssl_connector()) as session:
+            async with aiohttp.ClientSession(connector=_create_ssl_connector()) as session:
                 async with session.get(STATIONS_METADATA_URL) as response:
                     if response.status != 200:
                         _LOGGER.error("Failed to load stations: %s", response.status)

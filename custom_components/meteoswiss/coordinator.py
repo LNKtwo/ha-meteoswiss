@@ -30,16 +30,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# SSL connector for systems with outdated certificates (lazy loaded)
-# This is a fallback for systems that cannot update CA certificates
-_ssl_connector: TCPConnector | None = None
-
-def _get_ssl_connector() -> TCPConnector:
-    """Get or create SSL connector (lazy load to avoid blocking import)."""
-    global _ssl_connector
-    if _ssl_connector is None:
-        _ssl_connector = TCPConnector(ssl=False)
-    return _ssl_connector
+def _create_ssl_connector() -> TCPConnector:
+    """Create a new SSL connector for each session to avoid reuse issues."""
+    return TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs
 PARAM_TEMPERATURE = "tre200s0"  # Temperatur 2m, 10min
@@ -83,7 +76,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch the 10-minute CSV URL for the station."""
         if self._session is None:
             # Use SSL disabled connector for systems with outdated certificates
-            self._session = aiohttp.ClientSession(connector=_get_ssl_connector())
+            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
 
         try:
             url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
@@ -127,7 +120,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Download CSV and parse the latest values."""
         if self._session is None:
             # Use SSL disabled connector for systems with outdated certificates
-            self._session = aiohttp.ClientSession(connector=_get_ssl_connector())
+            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
 
         try:
             _LOGGER.debug("Downloading CSV from: %s", csv_url)

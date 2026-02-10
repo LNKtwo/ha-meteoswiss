@@ -13,15 +13,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 _LOGGER = logging.getLogger(__name__)
 
-# SSL connector for systems with outdated certificates (lazy loaded)
-_ssl_connector: TCPConnector | None = None
-
-def _get_ssl_connector() -> TCPConnector:
-    """Get or create SSL connector (lazy load to avoid blocking import)."""
-    global _ssl_connector
-    if _ssl_connector is None:
-        _ssl_connector = TCPConnector(ssl=False)
-    return _ssl_connector
+def _create_ssl_connector() -> TCPConnector:
+    """Create a new SSL connector for each session to avoid reuse issues."""
+    return TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs
 PARAM_TEMPERATURE = "tre200s0"
@@ -53,7 +47,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Fetch forecast data from CSV."""
         if self._session is None:
-            self._session = aiohttp.ClientSession(connector=_get_ssl_connector())
+            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
 
         try:
             _LOGGER.info("Fetching forecast CSV from: %s", self._forecast_url)
