@@ -94,7 +94,7 @@ async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities,
-) -> None:
+) -> bool:
     """Set up sensor platform."""
     _LOGGER.info("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
 
@@ -107,6 +107,7 @@ async def async_setup_entry(
     ]
 
     async_add_entities(entities)
+    return True
 
 
 class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], SensorEntity):
