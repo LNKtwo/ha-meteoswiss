@@ -74,18 +74,10 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
     MeteoSwissSensorEntityDescription(
         key=SENSOR_WIND_DIRECTION,
         translation_key="wind_direction",
-        device_class=SensorDeviceClass.WIND_DIRECTION,
+        device_class=SensorDeviceClass.WIND_SPEED,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="°",
+        native_unit_of_measurement=UnitOfLength.METERS,
         value_key=SENSOR_WIND_DIRECTION,
-    ),
-    MeteoSwissSensorEntityDescription(
-        key=SENSOR_PRECIPITATION,
-        translation_key="precipitation",
-        device_class=SensorDeviceClass.PRECIPITATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        value_key=SENSOR_PRECIPITATION,
     ),
     MeteoSwissSensorEntityDescription(
         key=SENSOR_PRESSURE,
@@ -99,9 +91,13 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *args,
 ) -> bool:
     """Set up sensor platform."""
+    _LOGGER.info("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
+
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 

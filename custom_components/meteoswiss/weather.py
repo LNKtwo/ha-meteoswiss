@@ -5,9 +5,9 @@ import logging
 from typing import Final
 
 from homeassistant.components.weather import WeatherEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPressure, UnitOfSpeed, UnitOfTemperature
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -37,7 +37,9 @@ CONDITION_MAP: Final = {
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *args,
 ) -> bool:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
@@ -69,48 +71,58 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             model="SwissMetNet",
         )
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_weather"
-        self._attr_has_entity_name = True
         self._attr_attribution = ATTRIBUTION
-
-        # Set units
         self._attr_native_temperature_unit = UnitOfTemperature.CELSIUS
         self._attr_native_pressure_unit = UnitOfPressure.HPA
         self._attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from coordinator."""
-        if self.coordinator.data:
-            data = self.coordinator.data
+    @property
+    def condition(self) -> str | None:
+        """Return the current condition."""
+        if self.coordinator_data:
+            # Simple condition mapping based on precipitation
+            precip = self.coordinator_data.get(SENSOR_PRECIPITATION)
+            if precip and precip > 0:
+                return "rainy"
+            return "sunny"
+        return None
 
-            self._attr_native_temperature = data.get(SENSOR_TEMPERATURE)
-            self._attr_native_pressure = data.get(SENSOR_PRESSURE)
-            self._attr_native_wind_speed = data.get(SENSOR_WIND_SPEED)
-            self._attr_native_wind_bearing = data.get(SENSOR_WIND_DIRECTION)
-            self._attr_native_humidity = data.get(SENSOR_HUMIDITY)
-            self._attr_native_precipitation_unit = "mm"
-            self._attr_native_precipitation = data.get(SENSOR_PRECIPITATION)
+    @property
+    def temperature(self) -> float | None:
+        """Return the temperature."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_TEMPERATURE)
+        return None
 
-            # Determine condition based on data
-            self._attr_condition = self._determine_condition(data)
+    @property
+    def pressure(self) -> float | None:
+        """Return the pressure."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_PRESSURE)
+        return None
 
-        super()._handle_coordinator_update()
+    @property
+    def humidity(self) -> int | None:
+        """Return the humidity."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_HUMIDITY)
+        return None
 
-    def _determine_condition(self, data: dict) -> str:
-        """Determine weather condition from data."""
-        # This is a simplified implementation
-        # Real implementation should use MeteoSwiss weather codes
-        temp = data.get(SENSOR_TEMPERATURE)
-        humidity = data.get(SENSOR_HUMIDITY)
-        precipitation = data.get(SENSOR_PRECIPITATION)
+    @property
+    def wind_speed(self) -> float | None:
+        """Return the wind speed."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_WIND_SPEED)
+        return None
 
-        if precipitation and precipitation > 0:
-            if temp and temp < 0:
-                return "snowy"
-            return "rainy"
+    @property
+    def wind_bearing(self) -> float | None:
+        """Return the wind bearing."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_WIND_DIRECTION)
+        return None
 
-        if humidity and humidity > 90:
-            return "foggy"
-
-        # Default to partly cloudy for now
-        return "partlycloudy"
+    @property
+    def forecast(self) -> list | None:
+        """Return the forecast."""
+        return None
