@@ -93,21 +93,20 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    *args,
-) -> bool:
+    async_add_entities,
+) -> None:
     """Set up sensor platform."""
     _LOGGER.info("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
-    hass.data[DOMAIN][entry.entry_id]["sensor_entities"] = [
+    entities = [
         MeteoSwissSensor(coordinator, entry, description, station_name)
         for description in SENSOR_DESCRIPTIONS
     ]
 
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-    return True
+    async_add_entities(entities)
 
 
 class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], SensorEntity):

@@ -39,18 +39,15 @@ CONDITION_MAP: Final = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    *args,
-) -> bool:
+    async_add_entities,
+) -> None:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
-    hass.data[DOMAIN][entry.entry_id]["weather_entity"] = MeteoSwissWeather(
-        coordinator, entry, station_name
-    )
+    entity = MeteoSwissWeather(coordinator, entry, station_name)
 
-    await hass.config_entries.async_forward_entry_setups(entry, ["weather"])
-    return True
+    async_add_entities([entity])
 
 
 class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], WeatherEntity):
