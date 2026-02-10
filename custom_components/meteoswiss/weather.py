@@ -39,7 +39,7 @@ CONDITION_MAP: Final = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    *args,
+    **kwargs,
 ) -> bool:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
