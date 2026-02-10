@@ -32,11 +32,15 @@ _SSL_CONNECTOR = TCPConnector(ssl=False)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_POSTAL_CODE): str,
+        vol.Optional(CONF_STATION_ID, default=""): str,
     }
 )
 
-# This schema will be built dynamically with available stations
-STEP_STATION_DATA_SCHEMA = vol.Schema({})
+        # This schema will be built dynamically with available stations
+STEP_STATION_DATA_SCHEMA = vol.Schema({
+            vol.Required(CONF_POSTAL_CODE): str,
+            vol.Optional(CONF_STATION_ID, default=""): str,
+        })
 
 
 class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
