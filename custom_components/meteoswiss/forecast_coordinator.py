@@ -1,10 +1,8 @@
 """Forecast coordinator for MeteoSwiss ICON-CH2 data."""
 from __future__ import annotations
 
-import asyncio
-import csv
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -14,9 +12,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 _LOGGER = logging.getLogger(__name__)
-
-# SSL connector for systems with outdated certificates
-_SSL_CONNECTOR = TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs
 PARAM_TEMPERATURE = "tre200s0"
@@ -41,14 +36,14 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_forecast",
+            name="meteoswiss_forecast",
             update_interval=timedelta(seconds=update_interval),
         )
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Fetch forecast data from CSV."""
         if self._session is None:
-            self._session = aiohttp.ClientSession(connector=_SSL_CONNECTOR)
+            self._session = aiohttp.ClientSession(connector=TCPConnector(ssl=False))
 
         try:
             _LOGGER.info("Fetching forecast CSV from: %s", self._forecast_url)
@@ -59,7 +54,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
 
                 content = await response.text()
 
-            # Parse CSV (semicolon-separated)
+            # Parse CSV (semicolon-separated) manually
             lines = content.strip().split("\n")
 
             if len(lines) < 2:
@@ -84,7 +79,6 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
                     timestamp_str = row_dict.get("reference_timestamp")
                     if timestamp_str:
                         try:
-                            # Parse German date format: "01.01.2025 00:00"
                             dt = datetime.strptime(timestamp_str, "%d.%m.%Y %H:%M")
                             row_dict["datetime"] = dt
                         except ValueError as e:
