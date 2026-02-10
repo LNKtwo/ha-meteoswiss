@@ -25,6 +25,9 @@ PLATFORMS: list[Platform] = [
     Platform.WEATHER,
 ]
 
+# Load forecast_coordinator
+from .forecast_coordinator import MeteoSwissForecastCoordinator
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MeteoSwiss integration from a config entry."""
