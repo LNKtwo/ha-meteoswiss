@@ -1,7 +1,6 @@
 """Config flow for meteoswiss integration."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -62,13 +61,25 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
                         _LOGGER.error("Failed to load stations: %s", response.status)
                         return []
 
-                    content = await response.text()
+                    content_bytes = await response.read()
 
-            # Parse CSV (semicolon-separated)
-            lines = content.strip().split("\n")
-            if len(lines) < 2:
+            # Try different encodings for CSV (MeteoSwiss uses ISO-8859-1 with umlauts)
+            lines = None
+            for encoding in ['iso-8859-1', 'latin-1', 'cp1252', 'utf-8-sig', 'utf-8']:
+                try:
+                    decoded = content_bytes.decode(encoding)
+                    lines = decoded.strip().split("\n")
+                    if len(lines) > 10:  # Check if we got valid data
+                        _LOGGER.info("Successfully decoded CSV with encoding: %s", encoding)
+                        break
+                except UnicodeDecodeError:
+                    continue
+            
+            if not lines or len(lines) < 2:
+                _LOGGER.error("Failed to decode CSV with any encoding")
                 return []
 
+            # Parse CSV (semicolon-separated)
             stations = []
             for line in lines[1:]:  # Skip header
                 parts = line.split(";")
@@ -93,6 +104,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
 
             self._stations = sorted(stations, key=lambda x: x["name"])
             _LOGGER.info("Loaded %d stations", len(stations))
+
             return self._stations
 
         except Exception as err:
