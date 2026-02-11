@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
-VERSION: Final = "2.2.0"
+VERSION: Final = "2.3.0"
 
 # API URLs
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"
@@ -36,6 +36,11 @@ CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_POLLEN_STATION_CODE: Final = "polen_station_code"
 CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
+CONF_DATA_SOURCE: Final = "data_source"
+
+# Data sources
+DATA_SOURCE_METEOSWISS: Final = "meteoswiss"
+DATA_SOURCE_OPENMETEO: Final = "openmeteo"
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL_SEC: Final = 600

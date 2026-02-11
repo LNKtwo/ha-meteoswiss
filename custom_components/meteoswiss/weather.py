@@ -38,28 +38,12 @@ async def async_setup_entry(
 ) -> None:
     """Set up weather platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-
-    # Get coordinates from STAC data (stored in coordinator or entry data)
-    lat = entry.data.get(CONF_LATITUDE)
-    lon = entry.data.get(CONF_LONGITUDE)
-    post_code = entry.data.get("post_code")
-
-    forecast_coordinator = MeteoSwissForecastCoordinator(
-        hass,
-        station_id=entry.data.get("station_id"),
-        latitude=lat,
-        longitude=lon,
-        post_code=post_code,
-        update_interval=3600,  # Update every hour
-    )
+    forecast_coordinator = hass.data[DOMAIN][entry.entry_id].get("forecast_coordinator")
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
     entity = MeteoSwissWeather(coordinator, forecast_coordinator, entry, station_name)
 
     async_add_entities([entity])
-
-    # Fetch forecast data initially
-    await forecast_coordinator.async_config_entry_first_refresh()
 
 
 class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], WeatherEntity):
