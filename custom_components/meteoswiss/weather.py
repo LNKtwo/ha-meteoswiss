@@ -174,6 +174,8 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         """Return daily forecast (derived from hourly)."""
         forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
 
+        _LOGGER.debug("async_forecast_daily called, forecast_data count: %s", len(forecast_data))
+
         if not forecast_data:
             _LOGGER.warning("No forecast data available for daily forecast")
             return None
@@ -182,19 +184,23 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         daily_data = {}
         for entry in forecast_data[:48]:  # Take up to 48 hours (2 days)
             date_str = entry.get("datetime", "")[:10]  # Get date part (YYYY-MM-DD)
+            _LOGGER.debug("Processing hourly entry: %s", entry.get("datetime"))
             if date_str not in daily_data:
                 daily_data[date_str] = []
             daily_data[date_str].append(entry)
 
+        _LOGGER.debug("Grouped data by date: %s days", len(daily_data))
+
         # Build daily forecast (one entry per day)
         ha_forecast = []
         for date_str, hourly_entries in list(daily_data.items())[:2]:  # Max 2 days
+            _LOGGER.debug("Building daily forecast for %s with %d hourly entries", date_str, len(hourly_entries))
             if hourly_entries:
                 # Use midday (12:00-14:00) as representative temperature
-                midday_entries = [e for e in hourly_entries if "12:" in e.get("datetime", "") or "13:" in e.get("datetime", "") or "14:" in e.get("datetime", "")]
+                midday_entries = [e for e in hourly_entries if "T12:" in e.get("datetime", "") or "T13:" in e.get("datetime", "") or "T14:" in e.get("datetime", "")]
                 representative = midday_entries[0] if midday_entries else hourly_entries[0]
 
-                ha_forecast.append(Forecast(
+                daily_forecast_entry = Forecast(
                     datetime=representative.get("datetime"),
                     temperature=representative.get("temperature"),
                     precipitation=sum(e.get("precipitation", 0) for e in hourly_entries),
@@ -202,7 +208,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                     wind_speed=representative.get("wind_speed"),
                     wind_bearing=representative.get("wind_direction"),
                     condition=representative.get("condition"),
-                ))
+                )
+                ha_forecast.append(daily_forecast_entry)
+                _LOGGER.debug("Added daily forecast entry for %s: temp=%s, condition=%s",
+                             date_str, representative.get("temperature"), representative.get("condition"))
 
         _LOGGER.debug("Returning %d daily forecast entries", len(ha_forecast))
         return ha_forecast if ha_forecast else None
