@@ -119,21 +119,9 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         wind_dir = hourly.get("winddirection_10m", [])
         weather_codes = hourly.get("weather_code", [])
 
-        now = datetime.now(timezone.utc)
-        start_idx = 0
-
-        # Find starting index (next hour)
-        for i, time_str in enumerate(times):
-            try:
-                dt = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
-                if dt >= now:
-                    start_idx = i
-                    break
-            except ValueError:
-                continue
-
         # Build forecast list (next 24 hours)
-        for i in range(start_idx, min(start_idx + 24, len(times))):
+        # Don't try to match current time - just take the next available hours
+        for i in range(min(24, len(times))):
             weather_code = weather_codes[i] if i < len(weather_codes) else None
             entry = {
                 "datetime": times[i],
