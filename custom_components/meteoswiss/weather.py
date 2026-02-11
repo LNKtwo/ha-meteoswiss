@@ -180,9 +180,9 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             _LOGGER.warning("No forecast data available for daily forecast")
             return None
 
-        # Group hourly data by day
+        # Group hourly data by day (up to 5 days = 120 hours)
         daily_data = {}
-        for entry in forecast_data[:48]:  # Take up to 48 hours (2 days)
+        for entry in forecast_data[:120]:  # Take up to 120 hours (5 days)
             date_str = entry.get("datetime", "")[:10]  # Get date part (YYYY-MM-DD)
             _LOGGER.debug("Processing hourly entry: %s", entry.get("datetime"))
             if date_str not in daily_data:
@@ -193,7 +193,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
 
         # Build daily forecast (one entry per day)
         ha_forecast = []
-        for date_str, hourly_entries in list(daily_data.items())[:2]:  # Max 2 days
+        for date_str, hourly_entries in list(daily_data.items())[:5]:  # Max 5 days
             _LOGGER.debug("Building daily forecast for %s with %d hourly entries", date_str, len(hourly_entries))
             if hourly_entries:
                 # Use midday (12:00-14:00) as representative temperature
