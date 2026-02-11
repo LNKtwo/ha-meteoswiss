@@ -64,3 +64,4 @@ CONDITION_SUNNY = "sunny"
 
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
+
