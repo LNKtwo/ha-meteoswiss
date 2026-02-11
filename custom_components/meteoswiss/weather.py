@@ -95,15 +95,21 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         if precip and precip > 0:
             return "rainy"
 
-        # Determine day/night based on current hour (Swiss timezone roughly UTC+1)
+        # Determine day/night based on current hour (Swiss timezone UTC+1)
         now = datetime.now().hour
-        # Night: 20:00 - 06:00
-        is_night = now >= 20 or now < 6
+        # Swiss timezone is UTC+1, so adjust for day/night
+        # Night: 21:00 - 07:00 Swiss time = 20:00 - 06:00 UTC
+        # Morning: 07:00 - 08:00 Swiss = 06:00 - 07:00 UTC
+        # Day: 08:00 - 20:00 Swiss = 07:00 - 20:00 UTC
+        is_night = now >= 20 or now < 7
+        is_morning = now >= 7 and now < 8
 
         if is_night:
             return "clear-night"
-        else:
+        elif is_morning and not (precip and precip > 0):
             return "sunny"
+        else:
+            return "partlycloudy"
 
     @property
     def temperature(self) -> float | None:
