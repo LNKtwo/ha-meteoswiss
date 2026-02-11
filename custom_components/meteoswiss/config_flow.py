@@ -40,6 +40,11 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize."""
+        self._data_source: str | None = None
+        self._update_interval: int = 600
+
     async def _load_stations(self) -> list[dict[str, Any]]:
         """Load stations metadata from CSV."""
         try:
@@ -62,7 +67,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
                         break
                 except UnicodeDecodeError:
                     continue
-            
+
             if not lines or len(lines) < 2:
                 _LOGGER.error("Failed to decode CSV with any encoding")
                 return []
@@ -122,33 +127,20 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
         # Store data source for next step
-        data_source = user_input[CONF_DATA_SOURCE]
-        update_interval = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SEC)
+        self._data_source = user_input[CONF_DATA_SOURCE]
+        self._update_interval = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SEC)
 
         # Route to appropriate step based on data source
-        if data_source == DATA_SOURCE_OPENMETEO:
-            return await self.async_step_openmeteo({
-                CONF_DATA_SOURCE: data_source,
-                CONF_UPDATE_INTERVAL: update_interval,
-            })
+        if self._data_source == DATA_SOURCE_OPENMETEO:
+            return await self.async_step_openmeteo()
         else:
-            return await self.async_step_meteoswiss({
-                CONF_DATA_SOURCE: data_source,
-                CONF_UPDATE_INTERVAL: update_interval,
-            })
+            return await self.async_step_meteoswiss()
 
     async def async_step_meteoswiss(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle MeteoSwiss STAC API setup."""
         errors: dict[str, str] = {}
-
-        # Get initial data from previous step
-        if user_input is not None and CONF_DATA_SOURCE in user_input:
-            # This is the initial call from async_step_user
-            data_source = user_input[CONF_DATA_SOURCE]
-            update_interval = user_input[CONF_UPDATE_INTERVAL]
-            user_input = None  # Clear for form display
 
         if user_input is None:
             # Load stations for dropdown
@@ -180,13 +172,13 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"MeteoSwiss {station_name} ({station_id.upper()})",
             data={
-                CONF_DATA_SOURCE: data_source,
+                CONF_DATA_SOURCE: self._data_source,
                 CONF_POSTAL_CODE: post_code,
                 CONF_STATION_ID: station_id.lower(),
                 CONF_STATION_NAME: station_name,
                 CONF_LATITUDE: lat,
                 CONF_LONGITUDE: lon,
-                CONF_UPDATE_INTERVAL: update_interval,
+                CONF_UPDATE_INTERVAL: self._update_interval,
             },
         )
 
@@ -195,13 +187,6 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle Open-Meteo API setup."""
         errors: dict[str, str] = {}
-
-        # Get initial data from previous step
-        if user_input is not None and CONF_DATA_SOURCE in user_input:
-            # This is the initial call from async_step_user
-            data_source = user_input[CONF_DATA_SOURCE]
-            update_interval = user_input[CONF_UPDATE_INTERVAL]
-            user_input = None  # Clear for form display
 
         if user_input is None:
             return self.async_show_form(
@@ -224,11 +209,11 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"Open-Meteo ({lat:.2f}, {lon:.2f})",
             data={
-                CONF_DATA_SOURCE: data_source,
+                CONF_DATA_SOURCE: self._data_source,
                 CONF_POSTAL_CODE: post_code,
                 CONF_LATITUDE: lat,
                 CONF_LONGITUDE: lon,
                 CONF_STATION_NAME: f"Open-Meteo",
-                CONF_UPDATE_INTERVAL: update_interval,
+                CONF_UPDATE_INTERVAL: self._update_interval,
             },
         )
