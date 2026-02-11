@@ -164,6 +164,43 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         _LOGGER.debug("Returning %d hourly forecast entries", len(ha_forecast))
         return ha_forecast if ha_forecast else None
 
+    async def async_forecast_daily(self) -> list[Forecast] | None:
+        """Return daily forecast (derived from hourly)."""
+        forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
+
+        if not forecast_data:
+            _LOGGER.warning("No forecast data available for daily forecast")
+            return None
+
+        # Group hourly data by day
+        daily_data = {}
+        for entry in forecast_data[:48]:  # Take up to 48 hours (2 days)
+            date_str = entry.get("datetime", "")[:10]  # Get date part (YYYY-MM-DD)
+            if date_str not in daily_data:
+                daily_data[date_str] = []
+            daily_data[date_str].append(entry)
+
+        # Build daily forecast (one entry per day)
+        ha_forecast = []
+        for date_str, hourly_entries in list(daily_data.items())[:2]:  # Max 2 days
+            if hourly_entries:
+                # Use midday (12:00-14:00) as representative temperature
+                midday_entries = [e for e in hourly_entries if "12:" in e.get("datetime", "") or "13:" in e.get("datetime", "") or "14:" in e.get("datetime", "")]
+                representative = midday_entries[0] if midday_entries else hourly_entries[0]
+
+                ha_forecast.append(Forecast(
+                    datetime=representative.get("datetime"),
+                    temperature=representative.get("temperature"),
+                    precipitation=sum(e.get("precipitation", 0) for e in hourly_entries),
+                    precipitation_probability=max(e.get("precipitation_probability", 0) for e in hourly_entries),
+                    wind_speed=representative.get("wind_speed"),
+                    wind_bearing=representative.get("wind_direction"),
+                    condition=representative.get("condition"),
+                ))
+
+        _LOGGER.debug("Returning %d daily forecast entries", len(ha_forecast))
+        return ha_forecast if ha_forecast else None
+
     @property
     def forecast(self) -> list | None:
         """Return forecast (deprecated, use async_forecast_hourly)."""
