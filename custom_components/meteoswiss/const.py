@@ -34,6 +34,8 @@ CONF_STATION_ID: Final = "station_id"
 CONF_STATION_NAME: Final = "station_name"
 CONF_UPDATE_INTERVAL: Final = "update_interval"
 CONF_POLLEN_STATION_CODE: Final = "polen_station_code"
+CONF_LATITUDE: Final = "latitude"
+CONF_LONGITUDE: Final = "longitude"
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL_SEC: Final = 600

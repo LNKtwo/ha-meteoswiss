@@ -13,6 +13,8 @@ from homeassistant.config_entries import ConfigFlow
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
     CONF_POSTAL_CODE,
     CONF_STATION_ID,
     CONF_STATION_NAME,
@@ -123,19 +125,23 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         station_id = user_input[CONF_STATION_ID]
         update_interval = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SEC)
 
-        # Find station name
+        # Find station details
         stations = await self._load_stations()
         station = next((s for s in stations if s["id"] == station_id), None)
         station_name = station["name"] if station else station_id
+        lat = station["lat"] if station else None
+        lon = station["lon"] if station else None
 
         # Create config entry
-        _LOGGER.info("Creating entry for station: %s", station_id)
+        _LOGGER.info("Creating entry for station: %s (lat=%s, lon=%s)", station_id, lat, lon)
         return self.async_create_entry(
             title=f"MeteoSwiss {station_name} ({station_id.upper()})",
             data={
                 CONF_POSTAL_CODE: post_code,
                 CONF_STATION_ID: station_id.lower(),
                 CONF_STATION_NAME: station_name,
+                CONF_LATITUDE: lat,
+                CONF_LONGITUDE: lon,
                 CONF_UPDATE_INTERVAL: update_interval,
             },
         )
