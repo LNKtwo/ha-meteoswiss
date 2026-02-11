@@ -136,25 +136,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Using MeteoSwiss API for station %s", station_id)
 
         # Load station coordinates for forecast (Open-Meteo)
-        # IMPORTANT: Use station coordinates, not entry coordinates (user's location)
-        lat, lon = await _load_station_coordinates(station_id)
+        latitude = entry.data.get(CONF_LATITUDE)
+        longitude = entry.data.get(CONF_LONGITUDE)
 
-        if lat is None or lon is None:
-            _LOGGER.warning("Could not load station coordinates for forecast")
-            # Fallback to entry coordinates
-            lat = entry.data.get(CONF_LATITUDE)
-            lon = entry.data.get(CONF_LONGITUDE)
+        if latitude is None or longitude is None and station_id:
+            # Try to load coordinates from station metadata
+            lat, lon = await _load_station_coordinates(station_id)
+            if lat and lon:
+                latitude = lat
+                longitude = lon
+                # Update entry data with coordinates
+                new_data = dict(entry.data)
+                new_data[CONF_LATITUDE] = latitude
+                new_data[CONF_LONGITUDE] = longitude
+                hass.config_entries.async_update_entry(entry, data=new_data)
 
-        # Forecast coordinator (uses Open-Meteo with station coordinates)
+        # Forecast coordinator (uses Open-Meteo with MeteoSwiss fallback)
         forecast_coordinator = MeteoSwissForecastCoordinator(
             hass,
             station_id=station_id,
-            latitude=lat,
-            longitude=lon,
+            latitude=latitude,
+            longitude=longitude,
             post_code=post_code,
             update_interval=3600,  # Forecast updates every hour
         )
-        _LOGGER.info("Forecast coordinator using Open-Meteo with station coordinates: lat=%s, lon=%s", lat, lon)
+        _LOGGER.info("Forecast coordinator created (Open-Meteo with MeteoSwiss fallback)")
 
     # Fetch initial data for current weather
     await coordinator.async_config_entry_first_refresh()
