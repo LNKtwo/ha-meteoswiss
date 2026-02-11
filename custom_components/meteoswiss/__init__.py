@@ -10,6 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_DATA_SOURCE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_POSTAL_CODE,
