@@ -1,48 +1,43 @@
 # MeteoSwiss Home Assistant Integration
 
-Home Assistant Custom Integration für MeteoSwiss Open Data API.
+> **Die ultimative Schweizer Wetter-Integration für Home Assistant**  
+> Offizielle MeteoSwiss Daten + Open-Meteo Forecast in einer Integration
 
-Offizielle Schweizer Wetterdaten direkt in Home Assistant integrieren.
+---
 
-## Features
+## 🚀 Quick Start
 
-- 🌡️ **Aktuelle Wetterdaten** von MeteoSwiss automatischen Wetterstationen (SwissMetNet)
-- 📍 **Stationssuche** basierend auf PLZ
-- 🔄 **Automatische Updates** (Standard: alle 10 Minuten)
-- 📊 **Mehrere Sensoren** für Temperatur, Wind, Regen, Luftfeuchtigkeit, Luftdruck
-- 🌦️ **Wetter-Karte** mit Vorhersagen
-- 🔐 **Offizielle Daten** direkt von MeteoSwiss (Open Government Data)
+### Installation
 
-## Installation
-
-### HACS Installation
-
-1. HACS öffnen → Integrations → "Hüpfen und herunterladen"
-2. Suchen nach "MeteoSwiss" → Download
+```bash
+# HACS Installation
+1. HACS öffnen → "Hüpfen und herunterladen"
+2. Nach "MeteoSwiss" suchen → Download
 3. Home Assistant Neustart
-4. Einstellungen → Geräte & Dienste → Integration hinzufügen → MeteoSwiss
+```
 
-### Manuelle Installation
+### Konfiguration
 
-1. `custom_components/meteoswiss/` Ordner in dein Home Assistant Verzeichnis kopieren
-2. Home Assistant Neustart
-3. Integration über das UI hinzufügen
+```yaml
+# configuration.yaml
+weather:
+  - platform: meteoswiss
+    name: Wetter Zürich
+    postal_code: "8001"
+    update_interval: 600  # Optional: 10 Minuten
+```
 
-## Konfiguration
+---
 
-1. **PLZ eingeben** (z.B. 6048 für Horw)
-2. **Wetterstation auswählen** (Liste der verfügbaren Stationen in der Nähe)
-3. **Update-Intervall wählen** (Standard: 10 Minuten, Minimum: 10 Minuten)
-4. **Speichern**
+## ✨ Features
 
-## Sensoren
+### 🌡️ MeteoSwiss STAC API (Aktuelle Daten)
+- **~160 Automatische Wetterstationen** (SwissMetNet)
+- Aktuelle Daten alle 10 Minuten
+- Daten direkt von MeteoSwiss (Open Government Data)
+- Kein API Key nötig
 
-Die Integration erstellt folgende Entities:
-
-### Weather Entity
-- `weather.meteoswiss_<station>` - Haupt-Wetter-Entity
-
-### Sensor Entities
+### 📊 Sensoren
 - `sensor.meteoswiss_<station>_temperature` - Aktuelle Temperatur (°C)
 - `sensor.meteoswiss_<station>_humidity` - Luftfeuchtigkeit (%)
 - `sensor.meteoswiss_<station>_wind_speed` - Windgeschwindigkeit (km/h)
@@ -50,28 +45,331 @@ Die Integration erstellt folgende Entities:
 - `sensor.meteoswiss_<station>_precipitation` - Niederschlagsmenge (mm)
 - `sensor.meteoswiss_<station>_pressure` - Luftdruck (hPa)
 
-## Datenquelle
+### 🌦️ Open-Meteo API (Forecast)
+- Stündlicher Forecast für bis zu 2 Tage
+- Täglich aggregierter Forecast
+- Kostenloser API (kein API Key nötig)
+- Automatische Retries bei Timeouts
+- **Dual Source:** Aktuelle Daten von MeteoSwiss, Forecast von Open-Meteo
 
-- **API:** MeteoSwiss Open Data API (STAC)
-- **Dokumentation:** https://opendatadocs.meteoswiss.ch
-- **Terms of Use:** Daten können ohne Einschränkung verwendet werden. Quelle muss angegeben werden ("Source: MeteoSwiss")
+### 📍 Smart Stationensuche
+- Automatische Stationensuche basierend auf PLZ
+- Liste aller Stationen im Config Flow
+- Kantons-basierte Filterung
+- Koordinaten werden automatisch geladen
 
-## MeteoSwiss Daten
+### 🔧 Konfiguration
+- Intuitive Konfiguration über HA UI
+- Wahl zwischen MeteoSwiss STAC und Open-Meteo
+- Anpassbares Update-Intervall (Standard: 10 Minuten)
+- Stationen-Dropdown für einfache Auswahl
 
-- **A1 - Automatic Weather Stations:** ~160 Stationen mit vollständigen Messprogramm
-- **Update:** Alle 10 Minuten
-- **Parameter:** Temperatur, Niederschlag, Wind, Sonnenstrahlung, Luftfeuchtigkeit, Luftdruck
+### 🎨 Wetter-Icons
+- Automatische Anzeige basierend auf Zeit (Tag/Nacht)
+- Zustandsabhängige Icons (Sonnig, Bewölkt, Regner, Schneend)
+- Wetter-Conditions werden korrekt gemappt
 
-## Support
+---
 
-- **GitHub:** https://github.com/LNKtwo/ha-meteoswiss
-- **Issues:** https://github.com/LNKtwo/ha-meteoswiss/issues
+## 📖 Detaillierte Dokumentation
 
-## License
+### Installationsschritte
+
+#### Methode 1: HACS (Empfohlen)
+
+1. Öffne HACS in Home Assistant
+2. Gehe zu "Hüpfen und herunterladen"
+3. Suche nach "MeteoSwiss" oder "Meteo Swiss"
+4. Klicke auf "Download" und dann "Installieren"
+5. Warte bis die Installation abgeschlossen ist
+6. Führe einen Home Assistant Neustart durch
+
+#### Methode 2: Manuel
+
+1. Klone das Repository:
+   ```bash
+   cd /path/to/homeassistant/custom_components/
+   git clone https://github.com/LNKtwo/ha-meteoswiss.git meteoswiss
+   ```
+2. Home Assistant Neustart
+
+### Konfigurationsschritte
+
+1. Öffne Home Assistant → Einstellungen → Geräte & Dienste
+2. Klicke auf "+ Integration hinzufügen"
+3. Suche nach "MeteoSwiss"
+4. Wähle Datenquelle:
+   - **MeteoSwiss STAC API:** Offizielle MeteoSwiss Stationen (Schweiz)
+   - **Open-Meteo API:** Weltweite Wetterdaten
+5. Gib deine Postleitzahl ein (z.B. 8001 für Zürich)
+6. Wähle eine Wetterstation aus der Dropdown-Liste
+7. Setze Update-Intervall (Optional, Standard: 10 Minuten)
+8. Klicke auf "Senden"
+
+### Erste Konfiguration
+
+Nach der Installation:
+
+```yaml
+# entities.yaml (Optional)
+weather:
+  - platform: meteoswiss
+    name: Zürich Wetter
+    postal_code: "8001"
+    station_id: "kzrh"
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### Sensoren zeigen keine Daten an
+
+```bash
+# Home Assistant Logs prüfen
+/homeassistant/home-assistant.log | grep -i meteoswiss
+
+# Logs in der HA UI prüfen
+Entwickler-Werkzeuge → YAML → MeteoSwiss
+```
+
+**Mögliche Lösungen:**
+- Home Assistant Neustart
+- Integration neu konfigurieren
+- Aktualisierung erzwingen:
+  ```yaml
+    service: meteoswiss.update
+    target:
+      entity_id: weather.meteoswiss_kzrh
+  ```
+
+### Forecast wird nicht angezeigt
+
+```yaml
+# Forecast in der UI aktivieren
+configuration.yaml:
+weather:
+  - platform: meteoswiss
+    postal_code: "8001"
+    name: Wetter
+    forecast_days: 2
+```
+
+**Hinweis:** Der Forecast wird von Open-Meteo API geladen und benötigt eine Internetverbindung.
+
+### Fehler: "Unknown error occurred" beim Einrichten
+
+**Mögliche Ursachen:**
+- Postleitzahl enthält ungültige Zeichen
+- Keine Verbindung zu MeteoSwiss API
+- Home Assistant Version zu alt
+
+**Lösung:**
+- Postleitzahl ohne Sonderzeichen eingeben
+- Verbindung prüfen
+- HA Core auf aktuelle Version aktualisieren (2025.1.0+ empfohlen)
+
+### 504 Gateway Timeout Fehler
+
+**Ursache:** Open-Meteo API ist vorübergehend nicht erreichbar
+
+**Lösung:** Die Integration hat einen automatischen Retry-Mechanismus:
+- Max 3 Retries bei Timeouts
+- Exponential Backoff (2, 4, 8 Sekunden)
+- Fallback zu anderen Datenquellen wenn verfügbar
+
+---
+
+## 🏗️ Technische Details
+
+### API Endpoints
+
+| API | Typ | Zweck | Rate Limit |
+|-----|-----|-------|------------|
+| MeteoSwiss STAC | Aktuelle Daten | JSON/CSV | Keine Limits |
+| Open-Meteo | Forecast | JSON | 10.000 Requests/Tag |
+
+### Update-Intervalle
+
+- **Aktuelle Daten:** 10 Minuten (Standard) - Minimal: 10 Minuten
+- **Forecast:** 1 Stunde - Optional: 1-24 Stunden
+
+### Daten-Quellen
+
+**MeteoSwiss STAC API (Aktuelle Daten)**
+- URL: https://data.geo.admin.ch/api/stac/v1
+- Collection: ch.meteoschweiz.ogd-smn
+- Format: JSON STAC Collection
+- Stations: ~160 Stationen (A1 Automatic Weather Stations)
+- Parameter: Temperatur, Wind, Niederschlag, Luftdruck, Luftfeuchtigkeit
+- Update-Häufigkeit: Alle 10 Minuten
+
+**Open-Meteo API (Forecast)**
+- URL: https://api.open-meteo.com/v1/forecast
+- Typ: Globaler Wetterdienst
+- Features: Stündlich + Täglich, 48h Forecast
+- Kosten: Kostenlos (kostenlos)
+- Authentifizierung: Kein API Key nötig
+- Retry-Mechanismus: Automatisch bei Timeouts (Max 3 Retries)
+- Timeouts: 30 Sekunden pro Request
+
+### Koordinaten-Logik
+
+**Für MeteoSwiss STAC:**
+- Koordinaten werden aus MeteoSwiss Stations-Metadata CSV geladen
+- Indizes: lat (Index 14), lon (Index 15)
+- Encoding: ISO-8859-1 (mit Umlauten)
+- Pro PLZ wird die nächstgelegene Station gewählt
+
+**Für Open-Meteo:**
+- Koordinaten werden aus der Konfiguration verwendet (User-Standort)
+- Alternativ werden Station-Koordinaten verwendet (wenn MeteoSwiss gewählt)
+- Dies stellt sicher, dass der Forecast immer den korrekten Standort anzeigt
+
+### Weather Conditions Mapping
+
+Die Integration mappt Wetterbedingungen auf Home Assistant Weather Conditions:
+
+| WMO Code | Condition | Beschreibung |
+|-----------|-----------|-------------|
+| 0 | clear-night | Klarer Himmel (Nacht) |
+| 1-3 | partlycloudy | Teils bewölkt |
+| 45, 48 | fog | Nebel |
+| 51-67 | rainy | Regen |
+| 71-77 | snowy | Schnee |
+| 80-82 | showers | Regenschauer |
+| 95-99 | lightning | Gewitter |
+
+**Timezone-Berücksichtigung:**
+- Die Condition berücksichtigt die Schweizer Zeitzone (UTC+1)
+- Tag: 07:00-08:00 UTC (08:00-09:00 Schweizer)
+- Nacht: 20:00-07:00 UTC (21:00-08:00 Schweizer)
+- Morgengrau: 07:00-08:00 UTC (wenn kein Regen)
+
+---
+
+## 🔨 Debugging
+
+### Logging aktivieren
+
+```yaml
+# configuration.yaml
+logger:
+  default: info
+  logs:
+    custom_components.meteoswiss: debug
+```
+
+### Log-Meldungen
+
+```
+# Normale Operation
+INFO: Fetching from MeteoSwiss API for station kzrh
+INFO: Successfully updated data for station kzrh
+INFO: Fetched forecast from Open-Meteo API
+INFO: Forecast coordinator using MeteoSwiss station coordinates: lat=47.37, lon=8.54
+
+# Warnungen
+WARNING: Could not load station coordinates
+WARNING: Open-Meteo returned 504, retry 1/3
+WARNING: Station xyz not found in metadata
+
+# Fehler
+ERROR: Failed to fetch station data
+ERROR: Error parsing CSV
+ERROR: MeteoSwiss API returned 503
+```
+
+### Service Calls
+
+```yaml
+# Manuelles Update der Integration
+service: meteoswiss.update
+target:
+  entity_id: weather.meteoswiss_kzrh
+
+# Manuelles Neuladen aller Entitäten
+service: homeassistant.reload
+```
+
+---
+
+## 🎓 Roadmap
+
+### Aktuelle Features (v3.0.0)
+- ✅ MeteoSwiss STAC API Integration
+- ✅ Open-Meteo Forecast Integration
+- ✅ Dual Source Support (MeteoSwiss + Open-Meteo)
+- ✅ Smart Stationensuche
+- ✅ 5 Sensoren pro Station
+- ✅ Weather Entity mit stündlichem Forecast
+- ✅ Tages-aggregierter Forecast
+- ✅ Retry-Mechanismus für Open-Meteo
+- ✅ Timezone-korrekte Conditions (Schweiz)
+- ✅ Konfiguration über HA UI
+
+### Geplante Features
+
+- 🔄 Pollen Integration
+- 🔄 MeteoSwiss App API (Alternative Datenquelle)
+- 🔄 Wetter-Alerts (Schwerwetterwarnungen)
+- 🔄 Historische Daten
+- 🔄 Karte mit allen Stationen
+- 🔄 Optimierter Caching
+
+---
+
+## 📄 Lizenz
 
 MIT License
 
-## Credits
+**Kosten:** Kostenlos
 
-- MeteoSwiss Open Data: https://opendatadocs.meteoswiss.ch
-- Home Assistant Developer Docs: https://developers.home-assistant.io/
+**Datenquellen:**
+- MeteoSwiss Open Data (Open Government Data, kostenlos nutzbar)
+- Open-Meteo API (Kostenlos, kommerziell frei nutzbar)
+
+---
+
+## 🤝 Contributing
+
+Bug-Reports und Feature-Requests sind willkommen!
+
+- **Issues:** https://github.com/LNKtwo/ha-meteoswiss/issues
+- **Pull Requests:** https://github.com/LNKtwo/ha-meteoswiss/pulls
+
+---
+
+## 🏆 Credits
+
+- **Metéo Suisse** (Swiss Federal Office of Meteorology and Climatology)
+  - Offizielle Schweizer Wetterdaten
+  - Open Government Data Initiative
+  - https://opendata.swiss/de/
+
+- **Open-Meteo**
+  - Kostenlose Wetter-API
+  - https://open-meteo.com/
+
+- **Home Assistant**
+  - https://www.home-assistant.io/
+
+- **Original Code**
+  - https://github.com/LNKtwo/ha-meteoswiss
+
+---
+
+## 📞 Support
+
+- **Issues:** https://github.com/LNKtwo/ha-meteoswiss/issues
+- **Discussions:** https://github.com/LNKtwo/ha-meteoswiss/discussions
+- **HACS:** https://hacs.xyz/
+
+---
+
+## 🇨🇭 Made in Switzerland
+
+Entwickelt mit ❤️ in Zürich für die Home Assistant Community
+
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-orange.svg)](https://www.home-assistant.io/)
+[![HACS](https://img.shields.io/badge/HACS-default-blue.svg)](https://hacs.xyz/)
