@@ -1,6 +1,7 @@
 """Forecast coordinator using Open-Meteo API."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -80,7 +81,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             return "partlycloudy"
 
     async def _fetch_open_meteo_forecast(self) -> list[dict[str, Any]]:
-        """Fetch forecast from Open-Meteo API."""
+        """Fetch forecast from Open-Meteo API with retries."""
         if self._latitude is None or self._longitude is None:
             raise UpdateFailed("No coordinates available for Open-Meteo")
 
@@ -98,11 +99,38 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
 
         _LOGGER.debug("Fetching from Open-Meteo: %s", url)
 
-        async with self._session.get(url) as response:
-            if response.status != 200:
-                raise UpdateFailed(f"Open-Meteo API returned {response.status}")
+        # Retry logic with timeout
+        max_retries = 3
+        timeout = aiohttp.ClientTimeout(total=30)  # 30 seconds timeout
 
-            data = await response.json()
+        for attempt in range(max_retries):
+            try:
+                async with self._session.get(url, timeout=timeout) as response:
+                    if response.status != 200:
+                        if attempt < max_retries - 1:
+                            _LOGGER.warning("Open-Meteo returned %s, retry %d/%d", response.status, attempt + 1, max_retries)
+                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                            continue
+                        raise UpdateFailed(f"Open-Meteo API returned {response.status}")
+
+                    data = await response.json()
+
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("Open-Meteo timeout, retry %d/%d", attempt + 1, max_retries)
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise UpdateFailed("Open-Meteo API timeout after retries")
+
+            except aiohttp.ClientError as err:
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("Open-Meteo client error %s, retry %d/%d", err, attempt + 1, max_retries)
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise UpdateFailed(f"Open-Meteo API client error: {err}")
+
+            # Success - break retry loop
+            break
 
         forecast_data = []
         hourly = data.get("hourly", {})
