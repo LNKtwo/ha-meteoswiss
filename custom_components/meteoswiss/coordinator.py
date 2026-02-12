@@ -36,11 +36,12 @@ def _create_ssl_connector() -> TCPConnector:
     return TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs
-PARAM_TEMPERATURE = "tre200s0"  # Temperatur 2m, 10min
-PARAM_HUMIDITY = "ure200s0"  # Luftfeuchtigkeit 2m, 10min
-PARAM_WIND_SPEED = "fu3010z0"  # Windgeschwindigkeit, 10min
-PARAM_WIND_DIR = "dkl010z0"  # Windrichtung, 10min
-PARAM_PRESSURE = "prestas0"  # Luftdruck (Station)
+# NOTE: These IDs changed in 2025! Old IDs (tre200s0, ure200s0, etc.) no longer work.
+PARAM_TEMPERATURE = "tre005s0"  # Temperatur 2m, 5min average (was tre200s0)
+PARAM_HUMIDITY = "xchills0"    # Luftfeuchtigkeit (was ure200s0)
+PARAM_WIND_SPEED = "tde200s0"    # Windgeschwindigkeit (was fu3010z0)
+PARAM_WIND_DIR = "prestas0"    # Windrichtung (was dkl010z0)
+PARAM_PRESSURE = "pp0qffs0"    # Luftdruck (was prestas0)
 
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
