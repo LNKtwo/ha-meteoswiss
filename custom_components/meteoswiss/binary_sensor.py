@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Final
 
 from homeassistant.components.binary_sensor import (
@@ -166,7 +167,7 @@ class MeteoSwissAlertsCoordinator(DataUpdateCoordinator[list[WeatherAlert]]):
             hass,
             _LOGGER,
             name=f"{DOMAIN}_alerts",
-            update_interval=update_interval,  # 10 minutes
+            update_interval=timedelta(seconds=update_interval),
         )
 
     async def _async_update_data(self) -> list[WeatherAlert]:
