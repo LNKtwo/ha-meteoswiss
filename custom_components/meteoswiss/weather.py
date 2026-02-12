@@ -8,9 +8,8 @@ from typing import Final
 from homeassistant.components.weather import WeatherEntity, Forecast
 from homeassistant.const import UnitOfPressure, UnitOfPrecipitationDepth, UnitOfSpeed, UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity import Entity, async_update_coordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -43,10 +42,6 @@ async def async_setup_entry(
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
     entity = MeteoSwissWeather(coordinator, forecast_coordinator, entry, station_name)
-
-    # Listen for forecast coordinator updates
-    if forecast_coordinator:
-        forecast_coordinator.async_add_listener(entity.async_write_ha_state)
 
     async_add_entities([entity])
 
@@ -81,11 +76,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def coordinator_data(self) -> dict:
         """Return coordinator data."""
         return self.coordinator.data if self.coordinator else {}
-
-    @callback
-    def async_write_ha_state(self) -> None:
-        """Write HA state when forecast coordinator updates."""
-        self.async_write_ha_state()
 
     @property
     def supported_features(self) -> int:
