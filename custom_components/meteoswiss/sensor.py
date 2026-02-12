@@ -1,6 +1,7 @@
 """Sensor platform for meteoswiss integration."""
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from typing import Final
@@ -35,6 +36,7 @@ from .const import (
     SENSOR_WIND_SPEED,
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
+from .stations_map import MeteoSwissStationsMap
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,6 +108,15 @@ async def async_setup_entry(
         for description in SENSOR_DESCRIPTIONS
     ]
 
+    # Add stations map sensor (only once)
+    if not hass.data[DOMAIN].get("stations_map_sensor_added", False):
+        from .stations_map import get_stations_map
+        stations_map = await get_stations_map()
+        stations_map_sensor = MeteoSwissStationsMapSensor(stations_map)
+        entities.append(stations_map_sensor)
+        hass.data[DOMAIN]["stations_map_sensor_added"] = True
+        _LOGGER.info("Added stations map sensor")
+
     async_add_entities(entities)
 
 
@@ -147,3 +158,40 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
             self._attr_native_value = value
 
         super()._handle_coordinator_update()
+
+
+class MeteoSwissStationsMapSensor(SensorEntity):
+    """Representation of a meteoswiss stations map sensor."""
+
+    def __init__(self, stations_map: MeteoSwissStationsMap) -> None:
+        """Initialize stations map sensor."""
+        self._stations_map = stations_map
+        self._attr_unique_id = f"{DOMAIN}_stations_map"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "stations_map")},
+            name="MeteoSwiss Weather Stations",
+            manufacturer="MeteoSwiss",
+            model="SwissMetNet",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = ATTRIBUTION
+        self._attr_name = "Weather Stations"
+        self._attr_native_value = "Loading..."
+
+    async def async_update(self) -> None:
+        """Update stations map."""
+        _LOGGER.info("Updating stations map")
+
+        await self._stations_map.load_stations()
+        stations = self._stations_map.get_all_stations()
+
+        # Update native value with station count
+        self._attr_native_value = f"{len(stations)} stations"
+        self._attr_extra_state_attributes = {
+            "station_count": len(stations),
+            "stations": [s.to_dict() for s in stations[:20]],  # Limit to first 20
+            "geojson": self._stations_map.to_geojson(),
+            "picture_elements_config": self._stations_map.to_picture_elements_config(),
+        }
+
+        _LOGGER.info("Stations map updated: %d stations", len(stations))

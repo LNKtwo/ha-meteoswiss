@@ -69,6 +69,114 @@ weather:
 - Zustandsabhängige Icons (Sonnig, Bewölkt, Regner, Schneend)
 - Wetter-Conditions werden korrekt gemappt
 
+### 🗺️ Stations Map (NEU! v3.1.0)
+- **Visualisiere alle ~160 MeteoSwiss Stationen auf einer Karte**
+- Automatische Koordinaten-Bestimmung aus MeteoSwiss Metadata
+- GeoJSON Export für Nutzung mit Map-Tools
+- Picture Elements Card Konfiguration für HA Dashboard
+- Station-Filter nach Kanton
+- Nearby Stations Suche (nächste Stationen zu deinem Standort)
+- **Neuer Sensor:** `sensor.meteoswiss_weather_stations` mit allen Stationen-Daten
+
+---
+
+## 📖 Detaillierte Dokumentation
+
+### 🗺️ Stations Map nutzen
+
+Die Integration stellt automatisch einen neuen Sensor zur Verfügung:
+- `sensor.meteoswiss_weather_stations` - Zeigt die Anzahl aller Stationen an
+
+**Attribute des Sensors:**
+- `station_count` - Anzahl aller geladenen Stationen
+- `stations` - Liste der Stationen (begrenzt auf erste 20)
+- `geojson` - GeoJSON FeatureCollection mit allen Stationen
+- `picture_elements_config` - Vorkonfigurierte Picture Elements Card
+
+#### Methode 1: Picture Elements Card (Einfach)
+
+Nutze die vorbereitete Konfiguration:
+
+```yaml
+# In deinem Dashboard (lovelace.yaml oder UI)
+type: picture-elements
+image: https://i.imgur.com/U5vMxGm.png  # Switzerland map image
+elements:
+  - type: state-label
+    entity: sensor.meteoswiss_weather_stations
+    style:
+      top: 50%
+      left: 50%
+      transform: translate(-50%, -50%)
+```
+
+Für alle Stationen nutze das `picture_elements_config` Attribut:
+
+```yaml
+type: picture-elements
+# Kopiere die Konfiguration aus:
+# sensor.meteoswiss_weather_stations.attributes.picture_elements_config
+```
+
+#### Methode 2: GeoJSON mit Map-Tools
+
+Exportiere die GeoJSON-Daten:
+
+```yaml
+# In einem Template Sensor
+- platform: template
+  sensors:
+    stations_geojson:
+      value_template: "{{ state_attr('sensor.meteoswiss_weather_stations', 'geojson') | to_json }}"
+```
+
+Nutze dies mit:
+- **Map Card** von HACS
+- **Custom Map** Integrations
+- **Leaflet** Integration
+
+#### Methode 3: Nearby Stations Suche
+
+Nutze die API in Automatisierungen:
+
+```yaml
+# Beispiel: Finde die nächsten 5 Stationen zu Zürich
+service: python_script.nearby_stations
+data:
+  latitude: 47.3769
+  longitude: 8.5417
+  max_distance_km: 50
+  limit: 5
+```
+
+#### Stations nach Kanton filtern
+
+Nutze die `get_stations_by_canton` Funktion:
+
+```python
+# In einer Python Script
+station_map = hass.states.get('sensor.meteoswiss_weather_stations')
+zh_stations = [s for s in station_map.attributes['stations'] if s.get('canton') == 'ZH']
+```
+
+#### Beispiel Dashboard-Konfiguration
+
+```yaml
+# dashboard.yaml
+title: MeteoSwiss Weather Stations
+views:
+  - title: Switzerland Weather Map
+    cards:
+      - type: picture-elements
+        image: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Switzerland_location_map.svg/800px-Switzerland_location_map.svg.png
+        elements:
+          # Automatisch generiert aus picture_elements_config
+          # Kopiere aus sensor.meteoswiss_weather_stations.attributes.picture_elements_config
+      - type: entities
+        entities:
+          - sensor.meteoswiss_weather_stations
+```
+
 ---
 
 ## 📖 Detaillierte Dokumentation
