@@ -98,7 +98,7 @@ weather:
 
 **HINWEIS:** Diese Funktion nutzt die MeteoSwiss App API. Warnungen sind limitiert auf meteorologische Ereignisse (Gewitter, Regen, Schnee, Wind). Naturgefahren wie Überschwemmungen, Waldbrand, Lawinen werden NICHT übermittelt.
 
-### 🌸 Pollen Integration (NEU! v3.4.0)
+### 🌸 Pollen Integration (NEU! v3.4.1)
 - **Schweizer Pollen-Daten** basierend auf MeteoSwiss
 - **Pollen-Typen:** Birke, Hasel, Erle, Gräser, Ambrosia
 - **Update-Intervall:** Alle 30 Minuten
