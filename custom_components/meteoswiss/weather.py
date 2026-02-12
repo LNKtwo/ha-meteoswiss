@@ -10,6 +10,7 @@ from homeassistant.const import UnitOfPressure, UnitOfPrecipitationDepth, UnitOf
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import Entity, async_update_coordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -42,6 +43,10 @@ async def async_setup_entry(
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
 
     entity = MeteoSwissWeather(coordinator, forecast_coordinator, entry, station_name)
+
+    # Listen for forecast coordinator updates
+    if forecast_coordinator:
+        forecast_coordinator.async_add_listener(entity.async_write_ha_state)
 
     async_add_entities([entity])
 
@@ -76,6 +81,11 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def coordinator_data(self) -> dict:
         """Return coordinator data."""
         return self.coordinator.data if self.coordinator else {}
+
+    @callback
+    def async_write_ha_state(self) -> None:
+        """Write HA state when forecast coordinator updates."""
+        self.async_write_ha_state()
 
     @property
     def supported_features(self) -> int:
@@ -150,6 +160,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         """Return hourly forecast."""
         forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
 
+        _LOGGER.info("=== HOURLY FORECAST REQUEST ===")
+        _LOGGER.info("Forecast coordinator data: %s", forecast_data)
+        _LOGGER.info("Forecast data count: %s", len(forecast_data) if forecast_data else 0)
+
         if not forecast_data:
             _LOGGER.warning("No forecast data available")
             return None
@@ -174,7 +188,8 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         """Return daily forecast (derived from hourly)."""
         forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
 
-        _LOGGER.debug("async_forecast_daily called, forecast_data count: %s", len(forecast_data))
+        _LOGGER.info("=== DAILY FORECAST REQUEST ===")
+        _LOGGER.info("Forecast coordinator data count: %s", len(forecast_data) if forecast_data else 0)
 
         if not forecast_data:
             _LOGGER.warning("No forecast data available for daily forecast")
