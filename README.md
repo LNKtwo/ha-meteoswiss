@@ -69,7 +69,7 @@ weather:
 - Zustandsabhängige Icons (Sonnig, Bewölkt, Regner, Schneend)
 - Wetter-Conditions werden korrekt gemappt
 
-### 🗺️ Stations Map (NEU! v3.1.0)
+### 🗺️ Stations Map (v3.1.0)
 - **Visualisiere alle ~160 MeteoSwiss Stationen auf einer Karte**
 - Automatische Koordinaten-Bestimmung aus MeteoSwiss Metadata
 - GeoJSON Export für Nutzung mit Map-Tools
@@ -77,6 +77,14 @@ weather:
 - Station-Filter nach Kanton
 - Nearby Stations Suche (nächste Stationen zu deinem Standort)
 - **Neuer Sensor:** `sensor.meteoswiss_weather_stations` mit allen Stationen-Daten
+
+### 🚀 Intelligentes Caching (NEU! v3.2.0)
+- **Automatisches Caching für API-Aufrufe** - reduziert API-Last
+- **Smart TTL:** Aktuelle Daten (5 min), Forecast (30 min), Stationen (24 Std.)
+- **Cache-Statistiken:** Hit-Rate, Misses, Evictions pro Cache
+- **Automatische Cache-Invalidierung:** Abgelaufene Einträge werden entfernt
+- **Performance-Steigerung:** Weniger API-Calls = schnellere Updates
+- **Neuer Sensor:** `sensor.meteoswiss_cache_statistics` mit allen Cache-Daten
 
 ---
 
@@ -176,6 +184,79 @@ views:
         entities:
           - sensor.meteoswiss_weather_stations
 ```
+
+### 🚀 Intelligentes Caching nutzen
+
+Die Integration verwendet automatisch intelligente Caching, um die Performance zu verbessern und API-Calls zu reduzieren.
+
+**Cache-TTL (Time-To-Live):**
+- **Aktuelle Wetterdaten:** 5 Minuten (Update-Intervall: 10 min)
+- **Forecast-Daten:** 30 Minuten (Update-Intervall: 60 min)
+- **Stations-Metadata:** 24 Stunden (ändert sich selten)
+
+#### Cache-Statistiken
+
+Überwache die Cache-Performance mit dem `sensor.meteoswiss_cache_statistics`:
+
+```yaml
+# In einem Dashboard
+type: entities
+entities:
+  - sensor.meteoswiss_cache_statistics
+```
+
+**Attribute des Sensors:**
+- `overall_hit_rate` - Gesamt-Hit-Rate aller Caches (%)
+- `current_weather` - Statistiken für aktuelle Wetterdaten
+- `forecast` - Statistiken für Forecast-Daten
+- `stations` - Statistiken für Stationen-Metadata
+
+**Cache-Statistiken pro Cache:**
+- `entries` - Anzahl der Einträge im Cache
+- `hits` - Anzahl der Cache-Treffer
+- `misses` - Anzahl der Cache-Misses
+- `evictions` - Anzahl der automatisch entfernten Einträge
+- `hit_rate` - Hit-Rate in %
+- `total_requests` - Gesamtanzahl der Requests
+
+#### Cache manuell leeren
+
+Wenn du Daten aktualisieren musst (z.B. nach Änderungen an den Stationen):
+
+```yaml
+# Automatisierung zum Leeren aller Caches
+- alias: MeteoSwiss Cache leeren
+  trigger:
+    - platform: time
+      at: "03:00:00"
+  action:
+    - service: python_script.clear_meteoswiss_cache
+```
+
+#### Cache-bezogene Logs
+
+Die Caching-Aktivität wird im Log protokolliert:
+
+```
+# Cache-Treffer
+INFO: Using cached data for station kzrh
+
+# Cache-Miss
+INFO: Fetching data for station kzrh
+
+# Cache-Eintrag gesetzt
+DEBUG: Cache set: station:kzrh (TTL: 300 sec)
+
+# Cache-Verfall
+DEBUG: Cache entry expired: forecast:47.37,8.54
+```
+
+#### Performance-Tipps
+
+**Für optimale Performance:**
+1. **Update-Intervalle nicht zu klein** - Standardwerte sind bereits optimiert
+2. **Cache-Statistiken überwachen** - Eine Hit-Rate > 70% ist gut
+3. **Bei Problemen Cache leeren** - Manchmal hilft ein Reset
 
 ---
 

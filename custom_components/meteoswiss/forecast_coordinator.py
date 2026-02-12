@@ -12,6 +12,8 @@ from aiohttp import TCPConnector
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .cache import get_forecast_cache
+
 _LOGGER = logging.getLogger(__name__)
 
 # Open-Meteo API
@@ -167,11 +169,25 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         return forecast_data
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
-        """Fetch forecast data from Open-Meteo API."""
+        """Fetch forecast data from Open-Meteo API with caching."""
         _LOGGER.info("Fetching forecast from Open-Meteo API")
+
+        # Get cache
+        cache = get_forecast_cache()
+        cache_key = f"forecast:{self._latitude},{self._longitude}"
+
+        # Try cache first
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            _LOGGER.info("Using cached forecast data")
+            return cached_data
 
         try:
             data = await self._fetch_open_meteo_forecast()
+
+            # Cache the result
+            cache.set(cache_key, data)
+
             _LOGGER.info("Successfully updated forecast from Open-Meteo")
             return data
         except aiohttp.ClientError as err:

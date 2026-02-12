@@ -24,6 +24,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .cache import get_all_cache_stats
 from .const import (
     ATTRIBUTION,
     CONF_STATION_NAME,
@@ -117,6 +118,13 @@ async def async_setup_entry(
         hass.data[DOMAIN]["stations_map_sensor_added"] = True
         _LOGGER.info("Added stations map sensor")
 
+    # Add cache stats sensor (only once)
+    if not hass.data[DOMAIN].get("cache_stats_sensor_added", False):
+        cache_stats_sensor = MeteoSwissCacheStatsSensor()
+        entities.append(cache_stats_sensor)
+        hass.data[DOMAIN]["cache_stats_sensor_added"] = True
+        _LOGGER.info("Added cache stats sensor")
+
     async_add_entities(entities)
 
 
@@ -195,3 +203,41 @@ class MeteoSwissStationsMapSensor(SensorEntity):
         }
 
         _LOGGER.info("Stations map updated: %d stations", len(stations))
+
+
+class MeteoSwissCacheStatsSensor(SensorEntity):
+    """Representation of cache statistics sensor."""
+
+    def __init__(self) -> None:
+        """Initialize cache stats sensor."""
+        self._attr_unique_id = f"{DOMAIN}_cache_stats"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "cache_stats")},
+            name="MeteoSwiss Cache Statistics",
+            manufacturer="MeteoSwiss",
+            model="Intelligent Caching",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = ATTRIBUTION
+        self._attr_name = "Cache Statistics"
+        self._attr_native_value = "Running"
+
+    async def async_update(self) -> None:
+        """Update cache statistics."""
+        _LOGGER.debug("Updating cache statistics")
+
+        stats = get_all_cache_stats()
+
+        # Calculate overall hit rate
+        total_hits = stats["current_weather"]["hits"] + stats["forecast"]["hits"]
+        total_misses = stats["current_weather"]["misses"] + stats["forecast"]["misses"]
+        total_requests = total_hits + total_misses
+        overall_hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0.0
+
+        self._attr_native_value = f"{overall_hit_rate:.1f}% hit rate"
+        self._attr_extra_state_attributes = {
+            "overall_hit_rate": round(overall_hit_rate, 2),
+            "current_weather": stats["current_weather"],
+            "forecast": stats["forecast"],
+            "stations": stats["stations"],
+        }

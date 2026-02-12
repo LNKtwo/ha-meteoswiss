@@ -10,6 +10,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .cache import get_current_weather_cache
 from .const import (
     CONF_POSTAL_CODE,
     DOMAIN,
@@ -255,13 +256,26 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API."""
+        """Fetch data from API with caching."""
         _LOGGER.info("Fetching Open-Meteo data")
+
+        # Get cache
+        cache = get_current_weather_cache()
+        cache_key = f"openmeteo:{self.latitude},{self.longitude}"
+
+        # Try cache first
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            _LOGGER.info("Using cached Open-Meteo data")
+            return cached_data
 
         data = await self._async_fetch_data()
 
         if data is None or not data:
             raise UpdateFailed("Failed to fetch Open-Meteo data")
+
+        # Cache the result
+        cache.set(cache_key, data)
 
         _LOGGER.info("Successfully updated Open-Meteo data")
         return data

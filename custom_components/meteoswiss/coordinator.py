@@ -13,6 +13,7 @@ from aiohttp import TCPConnector
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .cache import get_current_weather_cache
 from .const import (
     API_BASE,
     CONF_POSTAL_CODE,
@@ -269,8 +270,18 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API."""
+        """Fetch data from API with caching."""
         _LOGGER.info("Fetching data for station %s", self.station_id)
+
+        # Get cache
+        cache = get_current_weather_cache()
+        cache_key = f"station:{self.station_id}"
+
+        # Try cache first
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            _LOGGER.info("Using cached data for station %s", self.station_id)
+            return cached_data
 
         # Get CSV URL
         csv_url = await self._async_get_station_data_url()
@@ -285,6 +296,10 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed("Failed to parse station data")
 
         self._last_update = datetime.now()
+
+        # Cache the result
+        cache.set(cache_key, parsed_data)
+
         _LOGGER.info("Successfully updated data for station %s", self.station_id)
 
         return parsed_data
