@@ -43,6 +43,11 @@ async def async_setup_entry(
 
     entity = MeteoSwissWeather(coordinator, forecast_coordinator, entry, station_name)
 
+    # Listen for forecast coordinator updates
+    if forecast_coordinator:
+        forecast_coordinator.async_add_listener(entity._handle_forecast_update)
+        _LOGGER.info("Subscribed to forecast coordinator updates")
+
     async_add_entities([entity])
 
 
@@ -76,6 +81,12 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def coordinator_data(self) -> dict:
         """Return coordinator data."""
         return self.coordinator.data if self.coordinator else {}
+
+    @callback
+    def _handle_forecast_update(self) -> None:
+        """Handle forecast coordinator update."""
+        _LOGGER.info("Forecast coordinator updated, refreshing weather state")
+        self.async_write_ha_state()
 
     @property
     def supported_features(self) -> int:
