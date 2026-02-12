@@ -80,13 +80,29 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     @property
     def coordinator_data(self) -> dict:
         """Return coordinator data."""
-        return self.coordinator.data if self.coordinator else {}
+        if not self.coordinator:
+            _LOGGER.warning("Current weather coordinator is None!")
+        return {}
+
+        _LOGGER.info("Current weather coordinator data: %s", self.coordinator.data)
+        return self.coordinator.data
+
+    @property
+    def forecast_coordinator_data(self) -> list:
+        """Return forecast coordinator data."""
+        if not self._forecast_coordinator:
+            _LOGGER.warning("Forecast coordinator is None!")
+            return []
+
+        _LOGGER.info("Forecast coordinator data: %s", self._forecast_coordinator.data)
+        return self._forecast_coordinator.data
 
     @callback
     def _handle_forecast_update(self) -> None:
         """Handle forecast coordinator update."""
-        _LOGGER.info("Forecast coordinator updated, refreshing weather state")
+        _LOGGER.info("=== FORECAST UPDATE TRIGGERED ===")
         self.async_write_ha_state()
+        _LOGGER.info("=== STATE WRITE COMPLETE ===")
 
     @property
     def supported_features(self) -> int:
@@ -162,8 +178,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
 
         _LOGGER.info("=== HOURLY FORECAST REQUEST ===")
-        _LOGGER.info("Forecast coordinator data: %s", forecast_data)
+        _LOGGER.info("Forecast coordinator type: %s", type(self._forecast_coordinator))
+        _LOGGER.info("Forecast coordinator data type: %s", type(self._forecast_coordinator.data) if self._forecast_coordinator.data else "None")
         _LOGGER.info("Forecast data count: %s", len(forecast_data) if forecast_data else 0)
+        _LOGGER.info("Forecast data: %s", forecast_data)
 
         if not forecast_data:
             _LOGGER.warning("No forecast data available")
@@ -190,7 +208,9 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         forecast_data = self._forecast_coordinator.data if self._forecast_coordinator else []
 
         _LOGGER.info("=== DAILY FORECAST REQUEST ===")
+        _LOGGER.info("Forecast coordinator type: %s", type(self._forecast_coordinator))
         _LOGGER.info("Forecast coordinator data count: %s", len(forecast_data) if forecast_data else 0)
+        _LOGGER.info("Forecast coordinator data: %s", forecast_data)
 
         if not forecast_data:
             _LOGGER.warning("No forecast data available for daily forecast")
