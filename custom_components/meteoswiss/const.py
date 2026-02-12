@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
-VERSION: Final = "3.6.1"
+VERSION: Final = "3.6.3"
 
 # API URLs
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"
@@ -58,10 +58,9 @@ CONDITION_CLEAR = "clear-night"
 CONDITION_CLOUDY = "cloudy"
 CONDITION_FOG = "fog"
 CONDITION_PARTLY_CLOUDY = "partly-cloudy"
-CONDITION_RAIN = "rain"
-CONDITION_SNOW = "snow"
+CONDITION_RAIN = "rainy"
+CONDITION_SNOW = "snowy"
 CONDITION_SUNNY = "sunny"
 
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
-
