@@ -175,12 +175,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         update_interval=600,  # 10 minutes
     )
 
+    # Create pollen API and coordinator
+    from .pollen import MeteoSwissPollenAPI
+    pollen_api = MeteoSwissPollenAPI(session=None)
+    pollen_api.postal_code = post_code
+
+    from .pollen_coordinator import MeteoSwissPollenCoordinator
+    pollen_coordinator = MeteoSwissPollenCoordinator(
+        hass,
+        pollen_api=pollen_api,
+        postal_code=post_code,
+        update_interval=1800,  # 30 minutes
+    )
+
     # Fetch initial alerts data
     await alerts_coordinator.async_config_entry_first_refresh()
+
+    # Fetch initial pollen data
+    await pollen_coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
     hass.data[DOMAIN][entry.entry_id]["forecast_coordinator"] = forecast_coordinator
     hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"] = alerts_coordinator
+    hass.data[DOMAIN][entry.entry_id]["pollen_coordinator"] = pollen_coordinator
     hass.data[DOMAIN][entry.entry_id]["data_source"] = data_source
     hass.data[DOMAIN][entry.entry_id]["session"] = None
 
@@ -210,6 +227,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         alerts_coordinator = entry_data.get("alerts_coordinator")
         if alerts_coordinator:
             await alerts_coordinator.async_close()
+
+        # Close pollen coordinator
+        pollen_coordinator = entry_data.get("pollen_coordinator")
+        if pollen_coordinator:
+            await pollen_coordinator.async_close()
 
         hass.data[DOMAIN].pop(entry.entry_id)
 

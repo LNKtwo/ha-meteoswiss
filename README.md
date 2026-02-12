@@ -86,7 +86,7 @@ weather:
 - **Performance-Steigerung:** Weniger API-Calls = schnellere Updates
 - **Neuer Sensor:** `sensor.meteoswiss_cache_statistics` mit allen Cache-Daten
 
-### ⚠️ Wetter-Alerts (NEU! v3.3.0)
+### ⚠️ Wetter-Alerts (v3.3.0)
 - **MeteoSwiss Wetter-Warnungen** via MeteoSwiss App API
 - **Binary Sensoren:** `binary_sensor.meteoswiss_any_alert` und `binary_sensor.meteoswiss_critical_alert`
 - **Warn-Level:** 1-5 (von keine bis sehr hohe Gefahr)
@@ -97,6 +97,69 @@ weather:
 - **Attribute:** Anzahl aktiver Warnungen, alle Warnungen mit Details
 
 **HINWEIS:** Diese Funktion nutzt die MeteoSwiss App API. Warnungen sind limitiert auf meteorologische Ereignisse (Gewitter, Regen, Schnee, Wind). Naturgefahren wie Überschwemmungen, Waldbrand, Lawinen werden NICHT übermittelt.
+
+### 🌸 Pollen Integration (NEU! v3.4.0)
+- **Schweizer Pollen-Daten** basierend auf MeteoSwiss
+- **Pollen-Typen:** Birke, Hasel, Erle, Gräser, Ambrosia
+- **Update-Intervall:** Alle 30 Minuten
+- **Pollen-Level:** 0-4 (Keine, Niedrig, Mässig, Hoch, Sehr hoch)
+- **Hohe-Risiko-Prüfung:** Automatische Erkennung bei Level 3 oder höher
+- **Neue Sensoren:**
+  - `sensor.meteoswiss_pollen_birch` - Birken-Pollen
+  - `sensor.meteoswiss_pollen_hazel` - Hasel-Pollen
+  - `sensor.meteoswiss_pollen_alder` - Erlen-Pollen
+  - `sensor.meteoswiss_pollen_grass` - Gräser-Pollen
+  - `sensor.meteoswiss_pollen_ambrosia` - Ambrosia-Pollen
+
+**Attribute der Pollen-Sensoren:**
+- `level` - Pollen-Level (0-4)
+- `level_name` - Name des Levels (None, Low, Moderate, High, Very High)
+- `value` - Numerischer Wert des Levels
+- `is_high_risk` - True bei Level 3+ (Hohes Risiko)
+- `active` - True wenn Pollen aktiv (Level > 0)
+- `pollen_type` - Typ des Pollens
+- `pollen_type_name` - Name des Pollentyps
+
+**Wichtiges zu wissen:**
+
+- **Datenquelle:** Pollen-Daten von MeteoSwiss (offizielle Webseite)
+- **Update-Häufigkeit:** Alle 30 Minuten
+- **Saisonale Berücksichtigung:** Ausserhalb der Pollen-Saison (Oktober bis März)
+- **Caching:** Pollen-Daten werden für 30 Minuten gecachtet
+
+#### Beispiel Automatisierung für Pollen
+
+Erstelle eine Automatisierung für hohe Pollenbelastung:
+
+```yaml
+# In automations.yaml
+- alias: MeteoSwiss High Pollen Alert
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.meteoswiss_pollen_birch
+      above: 2  # Moderate oder höher
+  action:
+    - service: notify.mobile_app_my_phone
+      data:
+        message: "Hohe Birken-Pollenbelastung! Level: {{ states('sensor.meteoswiss_pollen_birch') }}"
+```
+
+#### Beispiel Dashboard-Konfiguration für Pollen
+
+```yaml
+# In deinem Dashboard
+type: entities
+entities:
+  - entity: sensor.meteoswiss_pollen_birch
+    name: Birken-Pollen
+    icon: mdi:tree
+  - entity: sensor.meteoswiss_pollen_grass
+    name: Gräser-Pollen
+    icon: mdi:grass
+  - entity: sensor.meteoswiss_pollen_ambrosia
+    name: Ambrosia-Pollen
+    icon: mdi:flower
+```
 
 ---
 
