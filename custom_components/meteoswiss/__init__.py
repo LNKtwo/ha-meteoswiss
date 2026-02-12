@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
+from .alerts import MeteoSwissAlertsAPI
 from .const import (
     CONF_DATA_SOURCE,
     CONF_LATITUDE,
@@ -32,6 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.WEATHER,
+    Platform.BINARY_SENSOR,
 ]
 
 
@@ -162,8 +164,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data for forecast
     await forecast_coordinator.async_config_entry_first_refresh()
 
+    # Create alerts API and coordinator
+    alerts_api = MeteoSwissAlertsAPI(session=None)
+    alerts_api.postal_code = post_code
+
+    from .binary_sensor import MeteoSwissAlertsCoordinator
+    alerts_coordinator = MeteoSwissAlertsCoordinator(
+        hass,
+        alerts_api=alerts_api,
+        update_interval=600,  # 10 minutes
+    )
+
+    # Fetch initial alerts data
+    await alerts_coordinator.async_config_entry_first_refresh()
+
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
     hass.data[DOMAIN][entry.entry_id]["forecast_coordinator"] = forecast_coordinator
+    hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"] = alerts_coordinator
     hass.data[DOMAIN][entry.entry_id]["data_source"] = data_source
     hass.data[DOMAIN][entry.entry_id]["session"] = None
 
@@ -188,6 +205,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         forecast_coordinator = entry_data.get("forecast_coordinator")
         if forecast_coordinator:
             await forecast_coordinator.async_close()
+
+        # Close alerts coordinator
+        alerts_coordinator = entry_data.get("alerts_coordinator")
+        if alerts_coordinator:
+            await alerts_coordinator.async_close()
 
         hass.data[DOMAIN].pop(entry.entry_id)
 

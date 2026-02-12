@@ -78,13 +78,25 @@ weather:
 - Nearby Stations Suche (nächste Stationen zu deinem Standort)
 - **Neuer Sensor:** `sensor.meteoswiss_weather_stations` mit allen Stationen-Daten
 
-### 🚀 Intelligentes Caching (NEU! v3.2.0)
+### 🚀 Intelligentes Caching (v3.2.0)
 - **Automatisches Caching für API-Aufrufe** - reduziert API-Last
 - **Smart TTL:** Aktuelle Daten (5 min), Forecast (30 min), Stationen (24 Std.)
 - **Cache-Statistiken:** Hit-Rate, Misses, Evictions pro Cache
 - **Automatische Cache-Invalidierung:** Abgelaufene Einträge werden entfernt
 - **Performance-Steigerung:** Weniger API-Calls = schnellere Updates
 - **Neuer Sensor:** `sensor.meteoswiss_cache_statistics` mit allen Cache-Daten
+
+### ⚠️ Wetter-Alerts (NEU! v3.3.0)
+- **MeteoSwiss Wetter-Warnungen** via MeteoSwiss App API
+- **Binary Sensoren:** `binary_sensor.meteoswiss_any_alert` und `binary_sensor.meteoswiss_critical_alert`
+- **Warn-Level:** 1-5 (von keine bis sehr hohe Gefahr)
+- **Warn-Typen:** Gewitter, Regen, Schnee, Wind, Waldbrand, Überschwemmung
+- **Gültigkeit:** Gültig von/bis Zeitstempel pro Warnung
+- **Outlook-Freigabe:** Vorhersagen werden ignoriert (nur aktive Warnungen)
+- **Automatische Updates:** Alle 10 Minuten
+- **Attribute:** Anzahl aktiver Warnungen, alle Warnungen mit Details
+
+**HINWEIS:** Diese Funktion nutzt die MeteoSwiss App API. Warnungen sind limitiert auf meteorologische Ereignisse (Gewitter, Regen, Schnee, Wind). Naturgefahren wie Überschwemmungen, Waldbrand, Lawinen werden NICHT übermittelt.
 
 ---
 
@@ -257,6 +269,101 @@ DEBUG: Cache entry expired: forecast:47.37,8.54
 1. **Update-Intervalle nicht zu klein** - Standardwerte sind bereits optimiert
 2. **Cache-Statistiken überwachen** - Eine Hit-Rate > 70% ist gut
 3. **Bei Problemen Cache leeren** - Manchmal hilft ein Reset
+
+---
+
+### ⚠️ Wetter-Alerts nutzen (NEU! v3.3.0)
+
+Die Integration erstellt automatisch Binary Sensoren für Wetter-Warnungen.
+
+**Neue Binary Sensoren:**
+- `binary_sensor.meteoswiss_any_alert` - Aktiv bei jeder Warnung (Level 2 oder höher)
+- `binary_sensor.meteoswiss_critical_alert` - Aktiv bei kritischen Warnungen (Level 3 oder höher)
+
+**Warn-Levels:**
+- **Level 1:** Keine oder geringe Gefahr
+- **Level 2:** Mässige Gefahr
+- **Level 3:** Erhebliche Gefahr
+- **Level 4:** Hohe Gefahr
+- **Level 5:** Sehr hohe Gefahr
+
+**Warn-Typen:**
+- 1 - Gewitter (Thunderstorm)
+- 2 - Regen (Rain)
+- 3 - Schnee (Snow)
+- 4 - Wind (Wind)
+- 10 - Waldbrand (Forest Fire)
+- 11 - Überschwemmung (Flood)
+
+**Attribute der Sensoren:**
+- `active_alerts_count` - Anzahl der aktiven Warnungen
+- `alerts` - Liste aller aktiven Warnungen mit Details:
+  - `alert_id` - Eindeutige ID der Warnung
+  - `warn_type` - Typ der Warnung (Nummer und Name)
+  - `warn_type_name` - Name des Warnungstyps
+  - `warn_level` - Level der Warnung (1-5)
+  - `warn_level_name` - Name des Warnungslevels
+  - `title` - Titel der Warnung
+  - `description` - Beschreibung der Warnung
+  - `valid_from` - Gültig ab (ISO datetime)
+  - `valid_to` - Gültig bis (ISO datetime)
+  - `outlook` - Ob es eine Vorhersage ist (true/false)
+
+**Zustände:**
+- `on` - Warnung aktiv
+- `off` - Keine Warnung
+- `warning` - Warnung (Level 2)
+- `critical` - Kritische Warnung (Level 3+)
+
+#### Beispiel Automatisierung für Wetter-Alerts
+
+Erstelle eine Automatisierung für Warnungen:
+
+```yaml
+# In automations.yaml
+- alias: MeteoSwiss Critical Warning Alert
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.meteoswiss_critical_alert
+      to: "on"
+  action:
+    - service: notify.mobile_app_my_phone
+      data:
+        message: "Kritische Wetter-Warnung aktiv! {{ state_attr('binary_sensor.meteoswiss_critical_alert', 'active_alerts_count') }} Warnungen"
+
+- alias: MeteoSwiss All Warning Alert
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.meteoswiss_any_alert
+      to: "on"
+  action:
+    - service: notify.mobile_app_my_phone
+      data:
+        message: "Wetter-Warnung aktiv! {{ state_attr('binary_sensor.meteoswiss_any_alert', 'alerts') | to_json }}"
+```
+
+#### Beispiel Dashboard-Konfiguration für Alerts
+
+```yaml
+# In deinem Dashboard
+type: entities
+entities:
+  - entity: binary_sensor.meteoswiss_any_alert
+    name: Wetter-Warnung
+    icon: mdi:alert
+  - entity: binary_sensor.meteoswiss_critical_alert
+    name: Kritische Warnung
+    icon: mdi:alert-octagram
+  - entity: sensor.meteoswiss_weather_stations
+    name: Wetterstationen
+```
+
+**Wichtiges zu wissen:**
+
+- **Outlook-Freigabe:** Vorhersagen (outlook=true) werden ignoriert. Nur aktive Warnungen lösen den Sensor aus.
+- **Gültigkeits-Prüfung:** Warnungen werden automatisch als inaktiv markiert, wenn sie abgelaufen sind (valid_to < now).
+- **Update-Intervall:** Warnungen werden alle 10 Minuten von der MeteoSwiss App API abgefragt.
+- **Limitation:** Die MeteoSwiss App API liefert nur meteorologische Warnungen (Gewitter, Regen, Schnee, Wind). Naturgefahren wie Überschwemmungen, Waldbrand, Lawinen werden NICHT übermittelt.
 
 ---
 
