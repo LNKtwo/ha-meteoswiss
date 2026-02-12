@@ -26,7 +26,7 @@ from .const import (
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .forecast_coordinator import MeteoSwissForecastCoordinator
 from .openmeteo_coordinator import OpenMeteoDataUpdateCoordinator
-from .pollen import MeteoSwissClient
+from .pollen import MeteoSwissPollenAPI
 
 _LOGGER = logging.getLogger(__name__)
 
