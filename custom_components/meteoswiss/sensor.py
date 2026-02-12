@@ -154,16 +154,21 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from coordinator."""
-        _LOGGER.debug("Sensor update: %s, coordinator.data=%s", self.entity_description.key, self.coordinator.data)
+        _LOGGER.info("=== SENSOR UPDATE: %s ===", self.entity_description.key)
+        _LOGGER.info("Coordinator data type: %s", type(self.coordinator.data))
+        _LOGGER.info("Coordinator data: %s", self.coordinator.data)
 
         if self.coordinator.data:
             value_key = self.entity_description.value_key
-            _LOGGER.debug("Looking for key: %s", value_key)
+            _LOGGER.info("Looking for key: %s", value_key)
 
             value = self.coordinator.data.get(value_key)
-            _LOGGER.debug("Found value: %s", value)
+            _LOGGER.info("Found value: %s (type: %s)", value, type(value))
 
             self._attr_native_value = value
+        else:
+            _LOGGER.warning("Coordinator data is None or empty!")
+            self._attr_native_value = None
 
         super()._handle_coordinator_update()
 
