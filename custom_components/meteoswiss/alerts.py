@@ -134,6 +134,7 @@ class MeteoSwissAlertsAPI:
         """Parse alerts from API response.
 
         The API returns data with optional 'warnings' field.
+        The warnings field can be either a list (multiple alerts) or a dict (single alert).
         """
         alerts: list[WeatherAlert] = []
 
@@ -148,57 +149,89 @@ class MeteoSwissAlertsAPI:
             _LOGGER.debug("No warnings in response")
             return alerts
 
-        # Parse warning text (HTML or text format)
-        warning_text = warnings_data.get("text", "")
-        html_text = warnings_data.get("htmlText", "")
+        # Handle both list and dict format
+        if isinstance(warnings_data, list):
+            # Multiple alerts
+            for warning in warnings_data:
+                if isinstance(warning, dict):
+                    alert = self._parse_single_alert(warning, postal_code)
+                    if alert:
+                        alerts.append(alert)
+        elif isinstance(warnings_data, dict):
+            # Single alert
+            alert = self._parse_single_alert(warnings_data, postal_code)
+            if alert:
+                alerts.append(alert)
+        else:
+            _LOGGER.warning("Unexpected warnings format: %s", type(warnings_data))
 
-        # Parse warning level
-        warn_level = warnings_data.get("warnLevel", 0)
-
-        # Parse warning type
-        warn_type = warnings_data.get("warnType", 0)
-
-        # Parse valid from/to (Unix timestamps)
-        valid_from_ts = warnings_data.get("validFrom")
-        valid_to_ts = warnings_data.get("validTo")
-
-        valid_from = None
-        valid_to = None
-
-        if valid_from_ts:
-            try:
-                valid_from = datetime.fromtimestamp(valid_from_ts / 1000)
-            except (ValueError, TypeError):
-                pass
-
-        if valid_to_ts:
-            try:
-                valid_to = datetime.fromtimestamp(valid_to_ts / 1000)
-            except (ValueError, TypeError):
-                pass
-
-        # Parse outlook flag
-        outlook = warnings_data.get("outlook", False)
-
-        # Generate alert ID
-        alert_id = f"{postal_code}_{warn_level}_{warn_type}_{valid_from_ts if valid_from_ts else 'now'}"
-
-        # Create alert
-        alert = WeatherAlert(
-            alert_id=alert_id,
-            warn_type=warn_type,
-            warn_type_name=self._get_warn_type_name(warn_type),
-            warn_level=warn_level,
-            warn_level_name=self._get_warn_level_name(warn_level),
-            title=f"{self._get_warn_type_name(warn_type)} - {self._get_warn_level_name(warn_level)}",
-            description=warning_text,
-            valid_from=valid_from,
-            valid_to=valid_to,
-            outlook=outlook,
-        )
-
-        alerts.append(alert)
         return alerts
+
+    def _parse_single_alert(self, warning_data: dict[str, Any], postal_code: str) -> WeatherAlert | None:
+        """Parse a single alert from warning data.
+
+        Args:
+            warning_data: Single alert data (dict)
+            postal_code: Postal code for alert ID generation
+
+        Returns:
+            WeatherAlert object or None if parsing fails
+        """
+        try:
+            # Parse warning text (HTML or text format)
+            warning_text = warning_data.get("text", "")
+            html_text = warning_data.get("htmlText", "")
+
+            # Parse warning level
+            warn_level = warning_data.get("warnLevel", 0)
+
+            # Parse warning type
+            warn_type = warning_data.get("warnType", 0)
+
+            # Parse valid from/to (Unix timestamps)
+            valid_from_ts = warning_data.get("validFrom")
+            valid_to_ts = warning_data.get("validTo")
+
+            valid_from = None
+            valid_to = None
+
+            if valid_from_ts:
+                try:
+                    valid_from = datetime.fromtimestamp(valid_from_ts / 1000)
+                except (ValueError, TypeError):
+                    pass
+
+            if valid_to_ts:
+                try:
+                    valid_to = datetime.fromtimestamp(valid_to_ts / 1000)
+                except (ValueError, TypeError):
+                    pass
+
+            # Parse outlook flag
+            outlook = warning_data.get("outlook", False)
+
+            # Generate alert ID
+            alert_id = f"{postal_code}_{warn_level}_{warn_type}_{valid_from_ts if valid_from_ts else 'now'}"
+
+            # Create alert
+            alert = WeatherAlert(
+                alert_id=alert_id,
+                warn_type=warn_type,
+                warn_type_name=self._get_warn_type_name(warn_type),
+                warn_level=warn_level,
+                warn_level_name=self._get_warn_level_name(warn_level),
+                title=f"{self._get_warn_type_name(warn_type)} - {self._get_warn_level_name(warn_level)}",
+                description=warning_text,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                outlook=outlook,
+            )
+
+            return alert
+
+        except Exception as err:
+            _LOGGER.error("Error parsing alert: %s", err)
+            return None
 
     @staticmethod
     def _get_warn_type_name(warn_type: int) -> str:
