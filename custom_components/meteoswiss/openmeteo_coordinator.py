@@ -257,7 +257,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API with caching."""
-        _LOGGER.info("Fetching Open-Meteo data")
+        _LOGGER.info("=== FETCHING OPEN-METEO DATA (lat=%s, lon=%s) ===", self.latitude, self.longitude)
 
         # Get cache
         cache = get_current_weather_cache()
@@ -266,18 +266,30 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Try cache first
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            _LOGGER.info("Using cached Open-Meteo data")
+            _LOGGER.info("✅ Using cached Open-Meteo data")
+            _LOGGER.info("Cache data: %s", cached_data)
             return cached_data
+
+        _LOGGER.info("❌ Cache miss, fetching fresh Open-Meteo data")
 
         data = await self._async_fetch_data()
 
-        if data is None or not data:
-            raise UpdateFailed("Failed to fetch Open-Meteo data")
+        if data is None:
+            _LOGGER.error("Open-Meteo data is None!")
+            raise UpdateFailed("Failed to fetch Open-Meteo data: data is None")
+
+        if not data:
+            _LOGGER.error("Open-Meteo data is empty!")
+            raise UpdateFailed("Failed to fetch Open-Meteo data: data is empty")
+
+        _LOGGER.info("✅ Successfully fetched Open-Meteo data: %s", data)
 
         # Cache the result
         cache.set(cache_key, data)
+        _LOGGER.info("✅ Cached Open-Meteo data (TTL: 300s)")
 
-        _LOGGER.info("Successfully updated Open-Meteo data")
+        _LOGGER.info("=== OPEN-METEO FETCH COMPLETE ===")
+
         return data
 
     async def async_close(self) -> None:
