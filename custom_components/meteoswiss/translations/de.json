@@ -3,23 +3,34 @@
     "step": {
       "user": {
         "title": "MeteoSwiss Einrichtung",
-        "description": "Gib deine PLZ ein, um nahegelegene Wetterstationen zu finden.",
+        "description": "Wähle deine bevorzugte Wetterdatenquelle.",
         "data": {
-          "postal_code": "PLZ"
+          "data_source": "Datenquelle",
+          "update_interval": "Update-Intervall (Sekunden)"
         }
       },
-      "station": {
-        "title": "Wetterstation wählen",
-        "description": "Wähle die Wetterstation, die deinem Standort am nächsten liegt.",
+      "meteoswiss": {
+        "title": "MeteoSwiss STAC Einrichtung",
+        "description": "Gib deine PLZ ein, um nahegelegene Schweizer Wetterstationen zu finden.",
         "data": {
-          "station_id": "Wetterstation",
-          "update_interval": "Update-Intervall (Sekunden)"
+          "postal_code": "PLZ",
+          "station_id": "Wetterstation"
+        }
+      },
+      "openmeteo": {
+        "title": "Open-Meteo Einrichtung",
+        "description": "Gib deine Standort-Koordinaten für die Open-Meteo API ein.",
+        "data": {
+          "postal_code": "PLZ (optional)",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad"
         }
       }
     },
     "error": {
-      "cannot_connect": "Konnte nicht zur MeteoSwiss API verbinden",
-      "station_not_found": "Station nicht gefunden"
+      "cannot_connect": "Konnte nicht zur Wetter-API verbinden",
+      "station_not_found": "Station nicht gefunden",
+      "invalid_location": "Ungültige Koordinaten"
     }
   },
   "title": "MeteoSwiss",

@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Weather Integration Setup",
+        "description": "Select your preferred weather data source.",
+        "data": {
+          "data_source": "Data Source",
+          "update_interval": "Update Interval (seconds)"
+        }
+      },
+      "meteoswiss": {
+        "title": "MeteoSwiss STAC Setup",
+        "description": "Enter your postal code to find nearby Swiss weather stations.",
+        "data": {
+          "postal_code": "Postal Code",
+          "station_id": "Weather Station"
+        }
+      },
+      "openmeteo": {
+        "title": "Open-Meteo Setup",
+        "description": "Enter your location coordinates for Open-Meteo API.",
+        "data": {
+          "postal_code": "Postal Code (optional)",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to weather API",
+      "station_not_found": "Station not found",
+      "invalid_location": "Invalid coordinates"
+    }
+  },
+  "title": "MeteoSwiss",
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_direction": {
+        "name": "Wind Direction"
+      },
+      "precipitation": {
+        "name": "Precipitation"
+      },
+      "pressure": {
+        "name": "Pressure"
+      }
+    }
+  }
+}
