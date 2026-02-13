@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
-VERSION: Final = "4.0.1"
+VERSION: Final = "4.0.2"
 
 # API URLs
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"
