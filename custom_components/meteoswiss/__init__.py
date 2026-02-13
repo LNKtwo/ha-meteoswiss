@@ -110,6 +110,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Use Open-Meteo API for current weather AND forecast
         latitude = entry.data.get(CONF_LATITUDE, 47.05)
         longitude = entry.data.get(CONF_LONGITUDE, 8.31)
+        lat = latitude
+        lon = longitude
 
         coordinator = OpenMeteoDataUpdateCoordinator(
             hass,
