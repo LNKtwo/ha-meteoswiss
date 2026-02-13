@@ -36,13 +36,14 @@ def _create_ssl_connector() -> TCPConnector:
     """Create a new SSL connector for each session to avoid reuse issues."""
     return TCPConnector(ssl=False)
 
-# MeteoSwiss CSV parameter IDs
-# NOTE: These IDs changed in 2025! Old IDs (tre200s0, ure200s0, etc.) no longer work.
-PARAM_TEMPERATURE = "tre005s0"  # Temperatur 2m, 5min average (was tre200s0)
-PARAM_HUMIDITY = "xchills0"    # Luftfeuchtigkeit (was ure200s0)
-PARAM_WIND_SPEED = "tde200s0"    # Windgeschwindigkeit (was fu3010z0)
-PARAM_WIND_DIR = "prestas0"    # Windrichtung (was dkl010z0)
-PARAM_PRESSURE = "pp0qffs0"    # Luftdruck (was prestas0)
+# MeteoSwiss CSV parameter IDs (10-minute granularity)
+# These are the column headers in the CSV files from data.geo.admin.ch
+PARAM_TEMPERATURE = "tre200s0"  # Lufttemperatur 2m über Boden; Momentanwert (°C)
+PARAM_HUMIDITY = "ure200s0"    # Relative Luftfeuchtigkeit 2m über Boden (%)
+PARAM_WIND_SPEED = "fu3010z0"  # Windgeschwindigkeit; Zehnminutenmittel (km/h)
+PARAM_WIND_DIR = "dkl010z0"    # Windrichtung; Zehnminutenmittel (°)
+PARAM_PRESSURE = "pp0qffs0"    # Luftdruck reduziert auf Meeresniveau QFF (hPa)
+PARAM_PRECIPITATION = "rre150z0"  # Niederschlag; Zehnminutensumme (mm)
 
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -242,6 +243,15 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.debug("Parsed pressure: %s hPa", result[SENSOR_PRESSURE])
                 except (ValueError, TypeError) as e:
                     _LOGGER.error("Could not parse pressure '%s': %s", press_value, e)
+
+            # Parse precipitation (in mm)
+            precip_value = row.get(PARAM_PRECIPITATION)
+            if precip_value and precip_value.strip():
+                try:
+                    result[SENSOR_PRECIPITATION] = float(precip_value)
+                    _LOGGER.debug("Parsed precipitation: %s mm", result[SENSOR_PRECIPITATION])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.error("Could not parse precipitation '%s': %s", precip_value, e)
 
             # Parse timestamp
             timestamp_value = row.get("reference_timestamp")
