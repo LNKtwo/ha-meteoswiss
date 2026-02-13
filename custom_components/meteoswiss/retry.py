@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-async def async_retry_with_backoff(
+def async_retry_with_backoff(
     max_attempts: int = 4,
     base_delay: float = 1.0,
     max_delay: float = 10.0,
