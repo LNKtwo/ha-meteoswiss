@@ -8,6 +8,8 @@ from typing import Any
 
 import aiohttp
 
+from .retry import async_retry_with_backoff
+
 _LOGGER = logging.getLogger(__name__)
 
 # MeteoSwiss App API
@@ -107,28 +109,29 @@ class MeteoSwissAlertsAPI:
         try:
             # Format PLZ: add "00" suffix (e.g., "8001" -> "800100")
             plz_formatted = f"{postal_code}00"
-
             url = f"{METEOSWISS_APP_API_URL}?plz={plz_formatted}"
-            _LOGGER.info("Fetching alerts from: %s", url)
 
-            async with self._session.get(url) as response:
-                if response.status != 200:
-                    _LOGGER.error("MeteoSwiss App API error: %s", response.status)
-                    return []
-
-                data = await response.json()
-
-            alerts = self._parse_alerts(data, postal_code)
+            alerts = await self._fetch_and_parse_alerts(url, postal_code)
             _LOGGER.info("Found %d alerts for postal code %s", len(alerts), postal_code)
 
             return alerts
 
-        except aiohttp.ClientError as err:
-            _LOGGER.error("MeteoSwiss App API request failed: %s", err)
-            return []
         except Exception as err:
             _LOGGER.error("Error fetching MeteoSwiss alerts: %s", err)
             return []
+
+    @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
+    async def _fetch_and_parse_alerts(self, url: str, postal_code: str) -> list:
+        """Fetch and parse alerts from API with retry logic."""
+        _LOGGER.info("Fetching alerts from: %s", url)
+
+        async with self._session.get(url) as response:
+            if response.status != 200:
+                _LOGGER.error("MeteoSwiss App API error: %s", response.status)
+                return []
+
+            data = await response.json()
+            return self._parse_alerts(data, postal_code)
 
     def _parse_alerts(self, data: dict[str, Any], postal_code: str) -> list[WeatherAlert]:
         """Parse alerts from API response.

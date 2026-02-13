@@ -28,6 +28,7 @@ from .const import (
     SENSOR_WIND_SPEED,
     STAC_COLLECTION,
 )
+from .retry import async_retry_with_backoff
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=update_interval),
         )
 
+    @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
     async def _async_get_station_data_url(self) -> str | None:
         """Fetch the 10-minute CSV URL for the station."""
         if self._session is None:
@@ -118,6 +120,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error(traceback.format_exc())
             return None
 
+    @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
     async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
         """Download CSV and parse the latest values."""
         if self._session is None:
@@ -311,9 +314,9 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._last_update = datetime.now()
 
-        # Cache the result
+        # Cache result
         cache.set(cache_key, parsed_data)
-        _LOGGER.info("✅ Cached data for station %s (TTL: 300s)", self.station_id)
+        _LOGGER.info("✅ Cached data for station %s (TTL: 600s)", self.station_id)
 
         _LOGGER.info("=== FETCH COMPLETE FOR STATION %s ===", self.station_id)
 

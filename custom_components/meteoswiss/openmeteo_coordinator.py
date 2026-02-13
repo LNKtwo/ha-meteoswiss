@@ -22,6 +22,7 @@ from .const import (
     SENSOR_WIND_DIRECTION,
     SENSOR_WIND_SPEED,
 )
+from .retry import async_retry_with_backoff
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,6 +111,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         weather_info = WMO_CODES.get(code, {"description": "Unknown"})
         return weather_info["description"]
 
+    @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
     async def _async_fetch_data(self) -> dict[str, Any] | None:
         """Fetch data from Open-Meteo API."""
         if self._session is None:
@@ -286,7 +288,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Cache the result
         cache.set(cache_key, data)
-        _LOGGER.info("✅ Cached Open-Meteo data (TTL: 300s)")
+        _LOGGER.info("✅ Cached Open-Meteo data (TTL: 600s)")
 
         _LOGGER.info("=== OPEN-METEO FETCH COMPLETE ===")
 

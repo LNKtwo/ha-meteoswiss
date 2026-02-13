@@ -219,11 +219,11 @@ _stations_cache: MeteoSwissCache | None = None
 def get_current_weather_cache() -> MeteoSwissCache:
     """Get or create current weather cache.
 
-    Current weather updates every 10 minutes, so cache for 5 minutes.
+    Current weather updates every 10 minutes, so cache for 10 minutes.
     """
     global _current_weather_cache
     if _current_weather_cache is None:
-        _current_weather_cache = MeteoSwissCache(default_ttl=300.0)  # 5 minutes
+        _current_weather_cache = MeteoSwissCache(default_ttl=600.0)  # 10 minutes
     return _current_weather_cache
 
 

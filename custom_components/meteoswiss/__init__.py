@@ -175,16 +175,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         update_interval=600,  # 10 minutes
     )
 
-    # Create pollen API and coordinator
-    from .pollen import MeteoSwissPollenAPI
-    pollen_api = MeteoSwissPollenAPI(session=None)
-    pollen_api.postal_code = post_code
+    # Create pollen API and coordinator (using Open-Meteo Air Quality API)
+    from .pollen_coordinator_openmeteo import OpenMeteoPollenCoordinator
 
-    from .pollen_coordinator import MeteoSwissPollenCoordinator
-    pollen_coordinator = MeteoSwissPollenCoordinator(
+    # Get coordinates for pollen (use forecast coordinates)
+    pollen_latitude = lat if lat else entry.data.get(CONF_LATITUDE, 47.05)
+    pollen_longitude = lon if lon else entry.data.get(CONF_LONGITUDE, 8.31)
+
+    pollen_coordinator = OpenMeteoPollenCoordinator(
         hass,
-        pollen_api=pollen_api,
-        postal_code=post_code,
+        latitude=pollen_latitude,
+        longitude=pollen_longitude,
         update_interval=1800,  # 30 minutes
     )
 
