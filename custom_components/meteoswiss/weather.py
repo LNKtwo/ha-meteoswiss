@@ -6,7 +6,12 @@ from datetime import datetime, timezone
 from typing import Final
 
 from homeassistant.components.weather import WeatherEntity, Forecast
-from homeassistant.const import UnitOfPressure, UnitOfPrecipitationDepth, UnitOfSpeed, UnitOfTemperature
+from homeassistant.const import (
+    UnitOfPressure,
+    UnitOfPrecipitationDepth,
+    UnitOfSpeed,
+    UnitOfTemperature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -152,7 +157,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
 
         data = self._forecast_coordinator.data
         _LOGGER.debug("Forecast coordinator data (count): %d", len(data) if data else 0)
-        return data
+        return data if data else []
 
     @callback
     def _handle_forecast_update(self) -> None:
@@ -189,22 +194,18 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         Returns:
             HA condition string or None
         """
-        # Log resolution start
         _LOGGER.debug("=== RESOLVING CURRENT CONDITION ===")
 
         # Try Open-Meteo current weather first
         forecast_data = self.forecast_coordinator_data
         if forecast_data and len(forecast_data) > 0:
-            # Try to find current hour in forecast data
             now = datetime.now(timezone.utc)
             for entry in forecast_data[:6]:  # Check next 6 hours
                 entry_time = entry.get("datetime")
                 if entry_time:
                     try:
-                        # Parse ISO datetime
                         if isinstance(entry_time, str):
                             entry_dt = datetime.fromisoformat(entry_time.replace("Z", "+00:00"))
-                            # Check if this entry is within 30 minutes of now
                             if abs((entry_dt - now).total_seconds()) < 1800:  # 30 min window
                                 weather_code = entry.get("weather_code")
                                 condition = self._map_open_meteo_condition(weather_code)
@@ -251,8 +252,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
 
                 # Time-based fallback (day/night)
                 now_hour = datetime.now().hour
-                # Swiss timezone is UTC+1, so adjust
-                # Night: 21:00-07:00 Swiss = 20:00-06:00 UTC
                 is_night = now_hour >= 20 or now_hour < 6
                 if is_night:
                     _LOGGER.info("✅ Condition resolved via time fallback: clear-night")
@@ -279,46 +278,73 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def temperature(self) -> float | None:
         """Return temperature."""
         if self.coordinator_data:
-            return self.coordinator_data.get(SENSOR_TEMPERATURE)
-        return None
-
-    @property
-    def pressure(self) -> float | None:
-        """Return pressure."""
-        if self.coordinator_data:
-            return self.coordinator_data.get(SENSOR_PRESSURE)
+            temp = self.coordinator_data.get(SENSOR_TEMPERATURE)
+            if temp is not None:
+                _LOGGER.debug("Temperature: %s °C", temp)
+            return temp
         return None
 
     @property
     def humidity(self) -> int | None:
         """Return humidity."""
         if self.coordinator_data:
-            return self.coordinator_data.get(SENSOR_HUMIDITY)
+            hum = self.coordinator_data.get(SENSOR_HUMIDITY)
+            if hum is not None:
+                _LOGGER.debug("Humidity: %s %%", hum)
+            return hum
+        return None
+
+    @property
+    def pressure(self) -> float | None:
+        """Return pressure."""
+        if self.coordinator_data:
+            press = self.coordinator_data.get(SENSOR_PRESSURE)
+            if press is not None:
+                _LOGGER.debug("Pressure: %s hPa", press)
+            return press
         return None
 
     @property
     def wind_speed(self) -> float | None:
         """Return wind speed."""
         if self.coordinator_data:
-            return self.coordinator_data.get(SENSOR_WIND_SPEED)
+            speed = self.coordinator_data.get(SENSOR_WIND_SPEED)
+            if speed is not None:
+                _LOGGER.debug("Wind speed: %s km/h", speed)
+            return speed
         return None
 
     @property
     def wind_bearing(self) -> float | None:
         """Return wind bearing."""
         if self.coordinator_data:
-            return self.coordinator_data.get(SENSOR_WIND_DIRECTION)
+            bearing = self.coordinator_data.get(SENSOR_WIND_DIRECTION)
+            if bearing is not None:
+                _LOGGER.debug("Wind bearing: %s °", bearing)
+            return bearing
         return None
 
-    async def async_forecast_hourly(self) -> list[Forecast] | None:
-        """Return hourly forecast."""
+    @property
+    def precipitation_unit(self) -> str:
+        """Return precipitation unit."""
+        return UnitOfPrecipitationDepth.MILLIMETERS
+
+    @property
+    def precipitation(self) -> float | None:
+        """Return precipitation."""
+        if self.coordinator_data:
+            return self.coordinator_data.get(SENSOR_PRECIPITATION)
+        return None
+
+    async def async_forecast_hourly(self) -> list[Forecast]:
+        """Return hourly forecast (never None)."""
         _LOGGER.debug("=== HOURLY FORECAST REQUEST ===")
 
         forecast_data = self.forecast_coordinator_data
 
         if not forecast_data:
-            _LOGGER.warning("No forecast data available for hourly forecast")
-            return None
+            _LOGGER.warning("No forecast data available for hourly forecast, returning empty list")
+            return []
 
         _LOGGER.info("Building hourly forecast from %d entries", len(forecast_data))
 
@@ -343,17 +369,17 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                 continue
 
         _LOGGER.debug("Returning %d hourly forecast entries", len(ha_forecast))
-        return ha_forecast if ha_forecast else None
+        return ha_forecast
 
-    async def async_forecast_daily(self) -> list[Forecast] | None:
-        """Return daily forecast (derived from hourly)."""
+    async def async_forecast_daily(self) -> list[Forecast]:
+        """Return daily forecast (never None)."""
         _LOGGER.debug("=== DAILY FORECAST REQUEST ===")
 
         forecast_data = self.forecast_coordinator_data
 
         if not forecast_data:
-            _LOGGER.warning("No forecast data available for daily forecast")
-            return None
+            _LOGGER.warning("No forecast data available for daily forecast, returning empty list")
+            return []
 
         _LOGGER.info("Building daily forecast from %d hourly entries", len(forecast_data))
 
@@ -403,21 +429,4 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                 continue
 
         _LOGGER.debug("Returning %d daily forecast entries", len(ha_forecast))
-        return ha_forecast if ha_forecast else None
-
-    @property
-    def forecast(self) -> list | None:
-        """Return forecast (deprecated, use async_forecast_hourly)."""
-        # For backward compatibility
-        forecast_data = self.forecast_coordinator_data
-        if not forecast_data:
-            return None
-        ha_forecast = []
-        for entry in forecast_data[:24]:
-            if entry.get("datetime") and entry.get("temperature") is not None:
-                ha_forecast.append({
-                    "datetime": entry["datetime"],
-                    "temperature": entry["temperature"],
-                    "precipitation": entry.get("precipitation"),
-                })
         return ha_forecast
