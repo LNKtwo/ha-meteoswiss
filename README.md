@@ -1,31 +1,24 @@
 # MeteoSwiss Home Assistant Integration
 
-> **Die ultimative Schweizer Wetter-Integration für Home Assistant**  
+> **Die ultimative Schweizer Wetter-Integration für Home Assistant**
 > Offizielle MeteoSwiss Daten + Open-Meteo Forecast in einer Integration
 
 ---
 
 ## 🚀 Quick Start
 
-### Installation
+### Installation (HACS)
 
-```bash
-# HACS Installation
-1. HACS öffnen → "Hüpfen und herunterladen"
-2. Nach "MeteoSwiss" suchen → Download
-3. Home Assistant Neustart
-```
+1. **HACS öffnen** → "Hüpfen und herunterladen"
+2. Nach **"MeteoSwiss"** suchen → Download
+3. **Home Assistant Neustart**
+4. **Integration hinzufügen:**
+   - Einstellungen → Geräte & Dienste → + Integration hinzufügen
+   - "MeteoSwiss" auswählen
+   - PLZ/Standort eingeben → Station auswählen
+   - Fertig!
 
-### Konfiguration
-
-```yaml
-# configuration.yaml
-weather:
-  - platform: meteoswiss
-    name: Wetter Zürich
-    postal_code: "8001"
-    update_interval: 600  # Optional: 10 Minuten
-```
+⚠️ **YAML-Konfiguration ist nicht mehr erforderlich.** Nutze den Config Flow über die UI.
 
 ---
 
@@ -36,7 +29,16 @@ weather:
 - Aktuelle Daten alle 10 Minuten
 - Daten direkt von MeteoSwiss (Open Government Data)
 - Kein API Key nötig
-- **v3.6.0+:** Korrigierte Parameter-IDs für 2025 API Format
+- **v4.0.5+:** Weather Entity Condition Fallback-Kette (kein "unknown" mehr)
+
+### 🌦️ Weather Entity
+- `weather.meteoswiss_<station>` - Vollständiges Wetter-Entity
+- Aktuelle Condition (Sonnig, Bewölkt, Regnerisch, etc.)
+- Temperatur, Luftfeuchtigkeit, Wind, Niederschlag
+- **Hourly Forecast** (bis zu 24 Stunden)
+- **Daily Forecast** (bis zu 5 Tage)
+- **v4.0.5+:** Robuste Condition-Auflösung (Open-Meteo → MeteoSwiss → Fallback)
+- **v4.0.5+:** Forecast kompatibel mit moderner HA API (`weather.get_forecasts`)
 
 ### 📊 Sensoren
 - `sensor.meteoswiss_<station>_temperature` - Aktuelle Temperatur (°C)
@@ -51,7 +53,6 @@ weather:
 - Täglich aggregierter Forecast (7 Tage)
 - Kostenloser API (kein API Key nötig)
 - Automatische Retries bei Timeouts
-- **v3.6.1+:** Daily Forecast (Tagesvorschau) jetzt verfügbar
 - **Dual Source:** Aktuelle Daten von MeteoSwiss, Forecast von Open-Meteo
 
 ### 📍 Smart Stationsuche
@@ -60,168 +61,71 @@ weather:
 - Kantons-basierte Filterung
 - Koordinaten werden automatisch geladen
 
-### 🧬 Konfiguration
-- Intuitive Konfiguration über HA UI
-- Wahl zwischen MeteoSwiss STAC und Open-Meteo
-- Anpassbares Update-Intervall (Standard: 10 Minuten)
-- Stationen-Dropdown für einfache Auswahl
-
-### 🌦️ Wetter-Icons
-- Automatische Anzeige basierend auf Zeit (Tag/Nacht)
-- Zustandsabhängige Icons (Sonnig, Bewölkt, Regnerisch, Schneidend)
-- Wetter-Conditions werden korrekt gemappt
-
----
-
-## 🗺️ Stations Map (v3.1.0)
-
-**Visualisiere alle ~160 MeteoSwiss Stationen auf einer Karte**
-
-- Automatische Koordinaten-Bestimmung aus MeteoSwiss Metadata
-- GeoJSON Export für Nutzung mit Map-Tools
-- Picture Elements Card Konfiguration für HA Dashboard
-- Station-Filter nach Kanton
-- Nearby Stations Suche (nächste Stationen zu deinem Standort)
-- **Neuer Sensor:** `sensor.meteoswiss_weather_stations` mit allen Stationen-Daten
-
----
-
-## 🚀 Intelligentes Caching (v3.2.0)
-
-**Automatisches Caching für API-Aufrufe** - reduziert API-Last
-
-- **Smart TTL:** Aktuelle Daten (5 min), Forecast (30 min), Stationen (24 Std.)
-- **Cache-Statistiken:** Hit-Rate, Misses, Evictions pro Cache
-- **Automatische Cache-Invalidierung:** Abgelaufene Einträge werden entfernt
-- **Performance-Steigerung:** Weniger API-Calls = schnellere Updates
-- **Neuer Sensor:** `sensor.meteoswiss_cache_statistics` mit allen Cache-Daten
-
----
-
-## ⚠️ Wetter-Alerts (v3.3.0)
-
-**MeteoSwiss Wetter-Warnungen** via MeteoSwiss App API
-
-- **Binary Sensoren:** `binary_sensor.meteoswiss_any_alert` und `binary_sensor.meteoswiss_critical_alert`
-- **Warn-Level:** 1-5 (von keine bis sehr hohe Gefahr)
-- **Warn-Typen:** Gewitter, Regen, Schnee, Wind, Waldbrand, Überschwemmung
-- **Gültigkeit:** Gültig von/bis Zeitstempel pro Warnung
-- **Outlook-Freigabe:** Vorhersagen werden ignoriert (nur aktive Warnungen)
-- **Automatische Updates:** Alle 10 Minuten
-- **Attribute:** Anzahl aktiver Warnungen, alle Warnungen mit Details
-
----
-
-## 🌸 Pollen Integration (v3.4.1+)
-
-**Schweizer Pollen-Daten** basierend auf MeteoSwiss
-
-- **Pollen-Typen:** Birke, Hasel, Erle, Gräser, Ambrosia
-- **Update-Intervall:** Alle 30 Minuten
-- **Pollen-Level:** 0-4 (Keine, Niedrig, Mässig, Hoch, Sehr hoch)
-- **Hohe-Risiko-Prüfung:** Automatische Erkennung bei Level 3 oder höher
-- **Neue Sensoren:**
-  - `sensor.meteoswiss_pollen_birch` - Birken-Pollen
-  - `sensor.meteoswiss_pollen_hazel` - Hasel-Pollen
-  - `sensor.meteoswiss_pollen_alder` - Erlen-Pollen
-  - `sensor.meteoswiss_pollen_grass` - Gräser-Pollen
-  - `sensor.meteoswiss_pollen_ambrosia` - Ambrosia-Pollen
-
-**Hinweis:** Diese Funktion nutzt die MeteoSwiss App API. Warnungen sind limitiert auf meteorologische Ereignisse (Gewitter, Regen, Schnee, Wind). Naturgefahren wie Überschwemmungen, Waldbrand, Lawinen werden NICHT übermittelt.
-
----
-
-## 🛠️ Behobene Probleme (v3.5.0 bis v3.6.1)
-
-### ✅ v3.5.1 - Missing Import Fix
-**Problem:** `NameError: name 'dataclass' is not defined`
-**Ursache:** Import von `dataclass` fehlte in `binary_sensor.py`
-**Lösung:** `from dataclasses import dataclass` hinzugefügt
-**Date:** 2026-02-12
-
-### ✅ v3.5.2 - Timedelta Fix
-**Problem:** `AttributeError: 'int' object has no attribute 'total_seconds'`
-**Ursache:** `DataUpdateCoordinator` erwartet `timedelta`, nicht `int` (Sekunden)
-**Lösung:** `update_interval=timedelta(seconds=update_interval)` Konvertierung
-**Date:** 2026-02-12
-
-### ✅ v3.5.3 - Alerts List Format Fix
-**Problem:** `'list' object has no attribute 'get'`
-**Ursache:** MeteoSwiss App API changed format from dict to list
-**Lösung:** Parser refactored to handle both formats
-**Date:** 2026-02-12
-
-### ✅ v3.6.0 - MeteoSwiss Parameter IDs Fix
-**Problem:** Sensoren zeigen "Unbekannt" (Unknown)
-**Ursache:** MeteoSwiss API änderte Parameter-IDs in 2025
-**Geänderte IDs:**
-- `tre200s0` → `tre005s0` (Temperature)
-- `ure200s0` → `xchills0` (Humidity)
-- `fu3010z0` → `tde200s0` (Wind Speed)
-- `dkl010z0` → `prestas0` (Wind Direction)
-- `prestas0` → `pp0qffs0` (Pressure)
-**Lösung:** Alle 5 Parameter-IDs aktualisiert
-**Date:** 2026-02-12
-
-### ✅ v3.6.1 - Forecast Display Fix
-**Problem:** Tagesvorschau wird geladen aber nicht angezeigt
-**Ursache:** Weather Entity subscribiert nur auf current weather coordinator
-**Lösung:** Forecast-Coordinator Update-Listener hinzugefügt
-**Date:** 2026-02-12
-
----
-
-## 📖 Detaillierte Dokumentation
-
-### 🗺️ Stations Map nutzen
-
-Die Integration stellt automatisch einen neuen Sensor zur Verfügung:
-- `sensor.meteoswiss_weather_stations` - Zeigt die Anzahl aller Stationen an
-
-**Attribute des Sensors:**
-- `station_count` - Anzahl aller geladenen Stationen
-- `stations` - Liste der Stationen (begrenzt auf erste 20)
-- `geojson` - GeoJSON FeatureCollection mit allen Stationen
-- `picture_elements_config` - Vorkonfigurierte Picture Elements Card
-
 ---
 
 ## 🛠️ Troubleshooting
 
-### Sensoren zeigen keine Daten an
+### Weather Entity zeigt "unknown"
 
-```bash
-# Home Assistant Logs prüfen
-/homeassistant/home-assistant.log | grep -i meteoswiss
+**Symptom:** `weather.meteoswiss_<station>` bleibt im Zustand "unknown"
 
-# Logs in der HA UI prüfen
-Entwickler-Werkzeuge → YAML → MeteoSwiss
-```
+**Ursachen & Lösungen:**
 
-**Mögliche Lösungen:**
-- Home Assistant Neustart
-- Integration neu konfigurieren
-- Aktualisierung erzwingen:
-  ```yaml
-    service: meteoswiss.update
-    target:
-      entity_id: weather.meteoswiss_kzrh
-  ```
+1. **Debug-Logging aktivieren:**
+   ```yaml
+   logger:
+     logs:
+       custom_components.meteoswiss: debug
+   ```
+
+2. **Relevante Logzeilen prüfen:**
+   ```
+   INFO: WeatherEntity initialized - lat/lon: 47.37/8.54
+   INFO: MeteoSwiss coordinator data: {temperature: 15.5, ...}
+   INFO: Forecast coordinator data (count): 120
+   INFO: ✅ Condition resolved via Open-Meteo: partlycloudy (code: 2)
+   ```
+
+3. **Fallback-Kette prüfen:**
+   - Open-Meteo Current (Priority 1)
+   - MeteoSwiss Symbol/Icon (Priority 2)
+   - Niederschlag/Zeit-Fallback (Priority 3)
+   - Safe Fallback "partlycloudy" (Priority 4)
+   - Nur None wenn absolut keine Daten
+
+4. **Manuelles Update erzwingen:**
+   ```yaml
+   service: homeassistant.update_entity
+   target:
+     entity_id: weather.meteoswiss_kzrh
+   ```
 
 ### Forecast wird nicht angezeigt
 
 **Prüfe:**
-1. Weather Entity geladen?
-2. Forecast-Daten verfügbar?
-3. Debug-Logs aktivieren:
-  ```yaml
-  logger:
-    custom_components.meteoswiss: debug
-  ```
+1. Weather Entity geladen? (`weather.meteoswiss_<station>`)
+2. Forecast-Daten verfügbar? (Logs prüfen)
+3. **Tester in HA Developer Tools:**
+   ```yaml
+   {{ state_attr('weather.meteoswiss_kzrh', 'forecast') }}
+   ```
+
+### Keine Kollision mit `weather.openmeteo_*`
+
+**Wichtig:** Diese Integration erstellt KEINE Entities in der `openmeteo` Domain.
+
+- MeteoSwiss Weather Entity: `weather.meteoswiss_<station>`
+- Externe Open-Meteo Integration: `weather.openmeteo_<location>`
+- Beide können parallel existieren ohne Konflikte
+
+**Interne Open-Meteo Nutzung:**
+- Nur für Forecast-Daten
+- Isoliert von externer Integration
+- Kein API Key erforderlich
 
 ---
 
-## 🏗️ Technische Details
+## 📖 Detaillierte Dokumentation
 
 ### Datenquellen
 
@@ -240,7 +144,6 @@ Entwickler-Werkzeuge → YAML → MeteoSwiss
 - Kosten: Kostenlos (kostenlos nutzbar)
 - Authentifizierung: Kein API Key nötig
 - Retry-Mechanismus: Automatisch bei Timeouts (Max 3 Retries)
-- Timeouts: 30 Sekunden pro Request
 
 ---
 
@@ -256,76 +159,47 @@ logger:
     custom_components.meteoswiss: debug
 ```
 
-### Log-Meldungen
+### Wichtige Log-Meldungen
 
 ```
 # Normale Operation
-INFO: Fetching from MeteoSwiss API for station luz
-INFO: Using cached Open-Meteo data
-INFO: Successfully updated Open-Meteo data
+INFO: WeatherEntity initialized - lat/lon: 47.37/8.54
+INFO: MeteoSwiss coordinator data: {temperature: 15.5, humidity: 65, ...}
+INFO: Forecast coordinator data (count): 120
+INFO: ✅ Condition resolved via Open-Meteo: partlycloudy (code: 2)
 
-# Warnungen
-WARNING: Could not load station coordinates
-WARNING: Open-Meteo returned 504, retry 1/3
-WARNING: Station xyz not found in metadata
+# Warnungen (erwartet)
+WARNING: Using safe fallback condition: partlycloudy (no condition source available)
+WARNING: Forecast coordinator data (count): 0
 
-# Fehler
+# Fehler (kritisch)
 ERROR: Failed to fetch station data
-ERROR: Error parsing CSV
-ERROR: MeteoSwiss API returned 503
+ERROR: No condition data available, returning None
+ERROR: Open-Meteo API timeout after retries
 ```
 
 ---
 
 ## 📄 Changelog
 
-### v3.6.1 (2026-02-12)
-- ✅ Fix: Tagesvorschau wird nicht angezeigt
-- ✅ Verbessert: Forecast-Coordinator Update Listener
+### v4.0.5 (2026-02-16)
+- ✅ Fix: Weather entity condition no longer stuck at 'unknown' when data exists
+- ✅ Feature: Fallback chain (Open-Meteo current → MeteoSwiss symbol → numeric safe fallback)
+- ✅ Feature: Forecast compatible with modern HA (async_forecast_hourly/async_forecast_daily)
+- ✅ Add: WMO weather code mapping for Open-Meteo
+- ✅ Add: MeteoSwiss symbol mapping
+- ✅ Add: Enhanced debug logging for troubleshooting
+- ✅ Fix: Unreachable code bug in coordinator data access
+- ✅ Improve: Error handling in forecast methods
+- ✅ Note: No breaking changes
 
-### v3.6.0 (2026-02-12)
-- ✅ Fix: MeteoSwiss Parameter-IDs (2025 API Format)
-- ✅ Alle 5 Parameter-IDs korrigiert
-- ✅ Sensors zeigen jetzt wieder Werte
+### v4.0.4 (2026-02-13)
+- ✅ Fix: UnboundLocalError for lat/lon in OpenMeteo data source
+- ✅ Fix: Retry decorator was async (TypeError: coroutine not callable)
+- ✅ Add: Remove __pycache__, add hacs.json
 
-### v3.5.3 (2026-02-12)
-- ✅ Fix: Alerts List Format (Dict → List)
-- ✅ Parser jetzt kompatibel mit API-Änderung
-
-### v3.5.2 (2026-02-12)
-- ✅ Fix: Timedelta Konvertierung
-- ✅ `DataUpdateCoordinator` Kompatibilität
-
-### v3.5.1 (2026-02-12)
-- ✅ Fix: Missing `dataclass` import
-- ✅ Binary Sensor Fehler behoben
-
-### v3.5.0 (2026-02-11)
-- ✅ Release: Feature Freeze und Stabilisierung
-- ✅ Alle v3.x Features integriert
-
-### v3.4.1 (2026-02-12)
-- ✅ Fix: Import Konflikt bei Pollen Integration
-- ✅ Namensräumung korrigiert
-
-### v3.4.0 (2026-02-12)
-- ✅ Feature: Pollen Integration
-- ✅ 4 Pollen-Typen implementiert
-
-### v3.3.0 (2026-02-12)
-- ✅ Feature: Wetter-Alerts via MeteoSwiss App API
-- ✅ Binary Sensoren für Warnungen
-- ✅ Warn-Level und -Typen
-
-### v3.2.0 (2026-02-12)
-- ✅ Feature: Intelligentes Caching
-- ✅ Cache-Statistiken Sensor
-- ✅ Performance-Steigerung
-
-### v3.1.0 (2026-02-12)
-- ✅ Feature: Stations Map
-- ✅ Visualisierung aller Stationen
-- ✅ GeoJSON Export
+### v4.0.3 (2026-02-13)
+- ✅ Release: v4.0.1
 
 ---
 
@@ -364,9 +238,6 @@ Bug-Reports und Feature-Requests sind willkommen!
 - **Home Assistant**
   - https://www.home-assistant.io/
 
-- **Original Code**
-  - https://github.com/LNKtwo/ha-meteoswiss
-
 ---
 
 ## 🏞 Support
@@ -382,4 +253,5 @@ Bug-Reports und Feature-Requests sind willkommen!
 Entwickelt mit ❤️ in Zürich für die Home Assistant Community
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-orange.svg)](https://www.home-assistant.io/)
-[![HACS](https://img.shields.io/badge/HACS-default-blue.svg)](https://hacs.xyz/)
+[![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
