@@ -281,102 +281,102 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
 
     @property
     def temperature(self) -> float | None:
-        """Return temperature from sensor entity."""
-        # Get sensor entity ID
-        sensor_entity_id = f"sensor.meteoswiss_{self._station_name}_temperatur"
-        state = self.hass.states.get(sensor_entity_id)
+        """Return temperature from coordinator data."""
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
 
-        if state:
-            temp = state.state
-            try:
-                temp_float = float(temp)
-                _LOGGER.info("Temperature: %s °C (from %s)", temp_float, sensor_entity_id)
-                return temp_float
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid temperature value: %s", temp)
-                return None
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
 
-        _LOGGER.warning("Sensor not found: %s", sensor_entity_id)
+        temp = data.get(SENSOR_TEMPERATURE)
+        if temp is not None:
+            _LOGGER.info("Temperature: %s °C (from coordinator)", temp)
+            return temp
+
+        _LOGGER.warning("Temperature not found in coordinator data")
         return None
 
     @property
     def humidity(self) -> int | None:
-        """Return humidity from sensor entity."""
-        # Get sensor entity ID
-        sensor_entity_id = f"sensor.meteoswiss_{self._station_name}_luftfeuchtigkeit"
-        state = self.hass.states.get(sensor_entity_id)
+        """Return humidity from coordinator data."""
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
 
-        if state:
-            hum = state.state
-            try:
-                hum_int = int(float(hum))
-                _LOGGER.info("Humidity: %s %% (from %s)", hum_int, sensor_entity_id)
-                return hum_int
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid humidity value: %s", hum)
-                return None
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
 
-        _LOGGER.warning("Sensor not found: %s", sensor_entity_id)
+        hum = data.get(SENSOR_HUMIDITY)
+        if hum is not None:
+            _LOGGER.info("Humidity: %s %% (from coordinator)", hum)
+            return hum
+
+        _LOGGER.warning("Humidity not found in coordinator data")
         return None
 
     @property
     def pressure(self) -> float | None:
-        """Return pressure from sensor entity."""
-        # Get sensor entity ID
-        sensor_entity_id = f"sensor.meteoswiss_{self._station_name}_luftdruck"
-        state = self.hass.states.get(sensor_entity_id)
+        """Return pressure from coordinator data."""
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
 
-        if state:
-            press = state.state
-            try:
-                press_float = float(press)
-                _LOGGER.info("Pressure: %s hPa (from %s)", press_float, sensor_entity_id)
-                return press_float
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid pressure value: %s", press)
-                return None
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
 
-        _LOGGER.warning("Sensor not found: %s", sensor_entity_id)
+        press = data.get(SENSOR_PRESSURE)
+        if press is not None:
+            _LOGGER.info("Pressure: %s hPa (from coordinator)", press)
+            return press
+
+        _LOGGER.warning("Pressure not found in coordinator data")
         return None
 
     @property
     def wind_speed(self) -> float | None:
-        """Return wind speed from sensor entity."""
-        # Get sensor entity ID
-        sensor_entity_id = f"sensor.meteoswiss_{self._station_name}_windgeschwindigkeit"
-        state = self.hass.states.get(sensor_entity_id)
+        """Return wind speed from coordinator data."""
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
 
-        if state:
-            speed = state.state
-            try:
-                speed_float = float(speed)
-                _LOGGER.info("Wind speed: %s km/h (from %s)", speed_float, sensor_entity_id)
-                return speed_float
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid wind speed value: %s", speed)
-                return None
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
 
-        _LOGGER.warning("Sensor not found: %s", sensor_entity_id)
+        speed = data.get(SENSOR_WIND_SPEED)
+        if speed is not None:
+            _LOGGER.info("Wind speed: %s km/h (from coordinator)", speed)
+            return speed
+
+        _LOGGER.warning("Wind speed not found in coordinator data")
         return None
 
     @property
     def wind_bearing(self) -> float | None:
-        """Return wind bearing from sensor entity."""
-        # Get sensor entity ID
-        sensor_entity_id = f"sensor.meteoswiss_{self._station_name}_windrichtung"
-        state = self.hass.states.get(sensor_entity_id)
+        """Return wind bearing from coordinator data."""
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
 
-        if state:
-            bearing = state.state
-            try:
-                bearing_float = float(bearing)
-                _LOGGER.info("Wind bearing: %s ° (from %s)", bearing_float, sensor_entity_id)
-                return bearing_float
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid wind bearing value: %s", bearing)
-                return None
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
 
-        _LOGGER.warning("Sensor not found: %s", sensor_entity_id)
+        bearing = data.get(SENSOR_WIND_DIRECTION)
+        if bearing is not None:
+            _LOGGER.info("Wind bearing: %s ° (from coordinator)", bearing)
+            return bearing
+
+        _LOGGER.warning("Wind bearing not found in coordinator data")
         return None
 
     @property
