@@ -281,62 +281,82 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     @property
     def temperature(self) -> float | None:
         """Return temperature."""
-        data = self.coordinator_data
-        if data:
-            temp = data.get(SENSOR_TEMPERATURE)
-            if temp is not None:
-                _LOGGER.info("Temperature: %s °C", temp)
-            return temp
-        _LOGGER.warning("No data available for temperature")
-        return None
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
+
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
+
+        temp = data.get(SENSOR_TEMPERATURE)
+        _LOGGER.info("Temperature: %s °C (raw data: %s)", temp, data)
+        return temp
 
     @property
     def humidity(self) -> int | None:
         """Return humidity."""
-        data = self.coordinator_data
-        if data:
-            hum = data.get(SENSOR_HUMIDITY)
-            if hum is not None:
-                _LOGGER.info("Humidity: %s %%", hum)
-            return hum
-        _LOGGER.warning("No data available for humidity")
-        return None
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
+
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
+
+        hum = data.get(SENSOR_HUMIDITY)
+        _LOGGER.info("Humidity: %s %%", hum)
+        return hum
 
     @property
     def pressure(self) -> float | None:
         """Return pressure."""
-        data = self.coordinator_data
-        if data:
-            press = data.get(SENSOR_PRESSURE)
-            if press is not None:
-                _LOGGER.info("Pressure: %s hPa", press)
-            return press
-        _LOGGER.warning("No data available for pressure")
-        return None
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
+
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
+
+        press = data.get(SENSOR_PRESSURE)
+        _LOGGER.info("Pressure: %s hPa", press)
+        return press
 
     @property
     def wind_speed(self) -> float | None:
         """Return wind speed."""
-        data = self.coordinator_data
-        if data:
-            speed = data.get(SENSOR_WIND_SPEED)
-            if speed is not None:
-                _LOGGER.info("Wind speed: %s km/h", speed)
-            return speed
-        _LOGGER.warning("No data available for wind_speed")
-        return None
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
+
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
+
+        speed = data.get(SENSOR_WIND_SPEED)
+        _LOGGER.info("Wind speed: %s km/h", speed)
+        return speed
 
     @property
     def wind_bearing(self) -> float | None:
         """Return wind bearing."""
-        data = self.coordinator_data
-        if data:
-            bearing = data.get(SENSOR_WIND_DIRECTION)
-            if bearing is not None:
-                _LOGGER.info("Wind bearing: %s °", bearing)
-            return bearing
-        _LOGGER.warning("No data available for wind_bearing")
-        return None
+        if not self.coordinator:
+            _LOGGER.warning("Coordinator is None")
+            return None
+
+        data = self.coordinator.data
+        if not data:
+            _LOGGER.warning("Coordinator data is empty")
+            return None
+
+        bearing = data.get(SENSOR_WIND_DIRECTION)
+        _LOGGER.info("Wind bearing: %s °", bearing)
+        return bearing
 
     @property
     def precipitation_unit(self) -> str:
