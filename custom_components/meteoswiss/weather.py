@@ -118,6 +118,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     ) -> None:
         """Initialize weather entity."""
         super().__init__(coordinator)
+        self._station_name = station_name
         self._forecast_coordinator = forecast_coordinator
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -135,7 +136,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         # Log coordinates for debug
         lat = entry.data.get(CONF_LATITUDE)
         lon = entry.data.get(CONF_LONGITUDE)
-        _LOGGER.info("WeatherEntity initialized - lat/lon: %s/%s", lat, lon)
+        _LOGGER.info("WeatherEntity initialized - station: %s, lat/lon: %s/%s", station_name, lat, lon)
 
     @property
     def coordinator_data(self) -> dict:
