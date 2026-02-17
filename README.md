@@ -182,24 +182,33 @@ ERROR: Open-Meteo API timeout after retries
 
 ## 📄 Changelog
 
-### v4.0.5 (2026-02-16)
-- ✅ Fix: Weather entity condition no longer stuck at 'unknown' when data exists
-- ✅ Feature: Fallback chain (Open-Meteo current → MeteoSwiss symbol → numeric safe fallback)
+### v5.0.5 (2026-02-17) - FINAL
+- ✅ **FIXED:** Weather Entity attributes (temperature, humidity, pressure, wind) showing null
+- ✅ **FIXED:** AttributeError: 'MeteoSwissWeather' object has no attribute '_station_name'
+- ✅ **FIXED:** coordinator.data Property wrapper causing data loss
+- ✅ **FIXED:** Weather Entity reads directly from coordinator.data
+- ✅ **FIXED:** Added comprehensive logging for debugging
+- ✅ All known issues resolved - stable release
+
+### v5.0.0 (2026-02-16)
 - ✅ Feature: Forecast compatible with modern HA (async_forecast_hourly/async_forecast_daily)
+- ✅ Feature: Fallback chain (Open-Meteo current → MeteoSwiss symbol → numeric safe fallback)
 - ✅ Add: WMO weather code mapping for Open-Meteo
 - ✅ Add: MeteoSwiss symbol mapping
 - ✅ Add: Enhanced debug logging for troubleshooting
 - ✅ Fix: Unreachable code bug in coordinator data access
 - ✅ Improve: Error handling in forecast methods
-- ✅ Note: No breaking changes
 
-### v4.0.4 (2026-02-13)
-- ✅ Fix: UnboundLocalError for lat/lon in OpenMeteo data source
-- ✅ Fix: Retry decorator was async (TypeError: coroutine not callable)
-- ✅ Add: Remove __pycache__, add hacs.json
-
-### v4.0.3 (2026-02-13)
-- ✅ Release: v4.0.1
+### v4.0.0 (2026-02-13)
+- ✅ Feature: MeteoSwiss STAC API integration (SwissMetNet)
+- ✅ Feature: Open-Meteo Forecast API integration
+- ✅ Feature: ~160 automatic weather stations
+- ✅ Feature: 10-minute update interval for current weather
+- ✅ Feature: Hourly forecast (24 hours)
+- ✅ Feature: Daily forecast (5 days)
+- ✅ Feature: Smart station search based on postal code
+- ✅ Feature: Dual source (MeteoSwiss + Open-Meteo)
+- ✅ No API key required
 
 ---
 
