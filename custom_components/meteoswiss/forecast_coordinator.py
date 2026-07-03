@@ -161,9 +161,9 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         wind_dir = hourly.get("winddirection_10m", [])
         weather_codes = hourly.get("weather_code", [])
 
-        # Build forecast list (next 24 hours)
+        # Build forecast list (5 days = 120 hours for daily forecast)
         # Determine day/night for each hour based on time
-        for i in range(min(24, len(times))):
+        for i in range(min(120, len(times))):
             weather_code = weather_codes[i] if i < len(weather_codes) else None
             
             # Check if this hour is nighttime
