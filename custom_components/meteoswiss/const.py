@@ -6,7 +6,7 @@ from typing import Final
 
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
-VERSION: Final = "5.0.7"
+VERSION: Final = "5.1.0"
 
 # API URLs
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"
@@ -52,6 +52,11 @@ SENSOR_WIND_SPEED: Final = "wind_speed"
 SENSOR_WIND_DIRECTION: Final = "wind_direction"
 SENSOR_PRECIPITATION: Final = "precipitation"
 SENSOR_PRESSURE: Final = "pressure"
+SENSOR_WIND_GUST: Final = "wind_gust"
+SENSOR_DEW_POINT: Final = "dew_point"
+SENSOR_SUNSHINE: Final = "sunshine_duration"
+SENSOR_GLOBAL_RADIATION: Final = "global_radiation"
+SENSOR_UV_INDEX: Final = "uv_index"
 
 # Condition mapping
 CONDITION_CLEAR = "clear-night"

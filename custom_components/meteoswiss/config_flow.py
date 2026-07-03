@@ -9,7 +9,8 @@ from aiohttp import TCPConnector
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigFlow, OptionsFlow
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
@@ -39,6 +40,12 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for meteoswiss."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow handler."""
+        return MeteoSwissOptionsFlow()
 
     def __init__(self) -> None:
         """Initialize."""
@@ -217,3 +224,33 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_UPDATE_INTERVAL: self._update_interval,
             },
         )
+
+
+class MeteoSwissOptionsFlow(OptionsFlow):
+    """Handle options flow for meteoswiss."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is None:
+            current_interval = self.config_entry.options.get(
+                CONF_UPDATE_INTERVAL,
+                self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL_SEC),
+            )
+            current_source = self.config_entry.options.get(
+                CONF_DATA_SOURCE,
+                self.config_entry.data.get(CONF_DATA_SOURCE, DATA_SOURCE_OPENMETEO),
+            )
+
+            return self.async_show_form(
+                step_id="init",
+                data_schema=vol.Schema({
+                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_UPDATE_INTERVAL),
+                    ),
+                }),
+            )
+
+        return self.async_create_entry(title="", data=user_input)

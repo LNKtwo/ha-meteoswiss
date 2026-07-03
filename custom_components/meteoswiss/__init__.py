@@ -104,7 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     shared_session = aiohttp.ClientSession(connector=_create_ssl_connector())
 
     # Create coordinator based on data source
-    update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 600)
+    update_interval = entry.options.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, 600))
     data_source = entry.data.get(CONF_DATA_SOURCE, DATA_SOURCE_METEOSWISS)
     station_id = entry.data.get(CONF_STATION_ID)
     post_code = entry.data.get(CONF_POSTAL_CODE)

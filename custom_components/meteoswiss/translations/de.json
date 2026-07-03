@@ -33,6 +33,18 @@
       "invalid_location": "Ungültige Koordinaten"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "MeteoSwiss Einstellungen",
+        "description": "Update-Intervall und Datenquelle anpassen.",
+        "data": {
+          "update_interval": "Update-Intervall (Sekunden, min. 600)",
+          "data_source": "Datenquelle"
+        }
+      }
+    }
+  },
   "title": "MeteoSwiss",
   "entity": {
     "sensor": {
@@ -53,6 +65,21 @@
       },
       "pressure": {
         "name": "Luftdruck"
+      },
+      "wind_gust": {
+        "name": "Windböe"
+      },
+      "dew_point": {
+        "name": "Taupunkt"
+      },
+      "sunshine_duration": {
+        "name": "Sonnenscheindauer"
+      },
+      "global_radiation": {
+        "name": "Globalstrahlung"
+      },
+      "uv_index": {
+        "name": "UV-Index"
       }
     }
   }

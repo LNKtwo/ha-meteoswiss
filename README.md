@@ -174,6 +174,16 @@ ERROR: Open-Meteo API timeout after retries
 
 ## 📄 Changelog
 
+### v5.1.0 (2026-07-03)
+- ✨ **Options Flow:** Update-Intervall ändern ohne Neukonfiguration
+- ✨ **Windböen-Sensor:** Böenspitze (Sekundenböe, km/h) von MeteoSwiss
+- ✨ **Taupunkt-Sensor:** Berechnet aus Temp + Luftfeuchte (Magnus-Formel)
+- ✨ **Sonnenscheindauer:** 10-Minuten-Summe (min) von MeteoSwiss
+- ✨ **Globalstrahlung:** 10-Minuten-Mittel (W/m²) von MeteoSwiss
+- ✨ **UV-Index:** Von Open-Meteo API
+- 🔧 **Diagnostic Category:** Cache-Stats und Stations-Map als Diagnostic-Entities
+- 🌐 Übersetzungen DE/EN aktualisiert
+
 ### v5.0.7 (2026-07-03)
 - 🐛 **FIXED:** Daily Forecast (5 Tage) wurde nicht angezeigt
 - Forecast-Coordinator hat Daten auf 24h abgeschnitten statt 120h (5 Tage)

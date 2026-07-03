@@ -18,22 +18,31 @@ from homeassistant.const import (
     UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
+    UnitOfIrradiance,
+    UnitOfTime,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .cache import get_all_cache_stats
 from .const import (
     ATTRIBUTION,
+    CONF_DATA_SOURCE,
     CONF_STATION_NAME,
+    DATA_SOURCE_OPENMETEO,
     DOMAIN,
+    SENSOR_DEW_POINT,
+    SENSOR_GLOBAL_RADIATION,
     SENSOR_HUMIDITY,
     SENSOR_PRECIPITATION,
     SENSOR_PRESSURE,
+    SENSOR_SUNSHINE,
     SENSOR_TEMPERATURE,
+    SENSOR_UV_INDEX,
     SENSOR_WIND_DIRECTION,
+    SENSOR_WIND_GUST,
     SENSOR_WIND_SPEED,
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
@@ -89,6 +98,46 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.HPA,
         value_key=SENSOR_PRESSURE,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_WIND_GUST,
+        translation_key="wind_gust",
+        device_class=SensorDeviceClass.WIND_SPEED,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+        value_key=SENSOR_WIND_GUST,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_DEW_POINT,
+        translation_key="dew_point",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_key=SENSOR_DEW_POINT,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_SUNSHINE,
+        translation_key="sunshine_duration",
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        value_key=SENSOR_SUNSHINE,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_GLOBAL_RADIATION,
+        translation_key="global_radiation",
+        device_class=SensorDeviceClass.IRRADIANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfIrradiance.WATTS_PER_SQUARE_METER,
+        value_key=SENSOR_GLOBAL_RADIATION,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_UV_INDEX,
+        translation_key="uv_index",
+        device_class=None,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="UV Index",
+        value_key=SENSOR_UV_INDEX,
     ),
 )
 
@@ -168,6 +217,8 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
 class MeteoSwissStationsMapSensor(SensorEntity):
     """Representation of a meteoswiss stations map sensor."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
     def __init__(self, stations_map: MeteoSwissStationsMap) -> None:
         """Initialize stations map sensor."""
         self._stations_map = stations_map
@@ -204,6 +255,8 @@ class MeteoSwissStationsMapSensor(SensorEntity):
 
 class MeteoSwissCacheStatsSensor(SensorEntity):
     """Representation of cache statistics sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self) -> None:
         """Initialize cache stats sensor."""

@@ -121,7 +121,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         params = {
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "current": "temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,weather_code",
+            "current": "temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,weather_code,uv_index",
             "hourly": "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code",
             "timezone": "Europe/Zurich",
         }
@@ -207,6 +207,12 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result["weather_code"] = self.weather_code
             result["weather_condition"] = self.get_weather_condition(self.weather_code)
             result["weather_description"] = self.get_weather_description(self.weather_code)
+
+            # UV index
+            uv = current.get("uv_index")
+            if uv is not None:
+                result["uv_index"] = float(uv)
+                _LOGGER.debug("Current UV index: %s", result["uv_index"])
             _LOGGER.debug("Weather code: %s (%s: %s)",
                          self.weather_code,
                          result["weather_condition"],

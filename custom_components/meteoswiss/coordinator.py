@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -44,6 +45,10 @@ PARAM_WIND_SPEED = "fu3010z0"  # Windgeschwindigkeit; Zehnminutenmittel (km/h)
 PARAM_WIND_DIR = "dkl010z0"    # Windrichtung; Zehnminutenmittel (°)
 PARAM_PRESSURE = "pp0qffs0"    # Luftdruck reduziert auf Meeresniveau QFF (hPa)
 PARAM_PRECIPITATION = "rre150z0"  # Niederschlag; Zehnminutensumme (mm)
+PARAM_GUST_1S = "fu3010z1"     # Böenspitze (Sekundenböe); Maximum (km/h)
+PARAM_GUST_3S = "fu3010z3"     # Böenspitze (3-Sekundenböe); Maximum (km/h)
+PARAM_SUNSHINE = "sre000z0"    # Sonnenscheindauer; Zehnminutensumme (min)
+PARAM_GLOBAL_RAD = "gre000z0"  # Globalstrahlung; Zehnminutenmittel (W/m²)
 
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -196,6 +201,10 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 SENSOR_WIND_DIRECTION: None,
                 SENSOR_PRECIPITATION: None,
                 SENSOR_PRESSURE: None,
+                SENSOR_WIND_GUST: None,
+                SENSOR_DEW_POINT: None,
+                SENSOR_SUNSHINE: None,
+                SENSOR_GLOBAL_RADIATION: None,
                 "last_update": None,
             }
 
@@ -252,6 +261,44 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.debug("Parsed precipitation: %s mm", result[SENSOR_PRECIPITATION])
                 except (ValueError, TypeError) as e:
                     _LOGGER.error("Could not parse precipitation '%s': %s", precip_value, e)
+
+            # Parse wind gust (1-second, in km/h)
+            gust_value = row.get(PARAM_GUST_1S)
+            if gust_value and gust_value.strip():
+                try:
+                    result[SENSOR_WIND_GUST] = float(gust_value)
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse wind gust '%s': %s", gust_value, e)
+
+            # Parse sunshine duration (10-min sum, in minutes)
+            sun_value = row.get(PARAM_SUNSHINE)
+            if sun_value and sun_value.strip():
+                try:
+                    result[SENSOR_SUNSHINE] = float(sun_value)
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse sunshine '%s': %s", sun_value, e)
+
+            # Parse global radiation (W/m²)
+            rad_value = row.get(PARAM_GLOBAL_RAD)
+            if rad_value and rad_value.strip():
+                try:
+                    result[SENSOR_GLOBAL_RADIATION] = float(rad_value)
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse global radiation '%s': %s", rad_value, e)
+
+            # Calculate dew point from temperature and humidity
+            temp = result.get(SENSOR_TEMPERATURE)
+            hum = result.get(SENSOR_HUMIDITY)
+            if temp is not None and hum is not None:
+                try:
+                    # Magnus formula
+                    a = 17.625
+                    b = 243.04
+                    alpha = ((a * temp) / (b + temp)) + math.log(max(hum, 1.0) / 100.0)
+                    dew = (b * alpha) / (a - alpha)
+                    result[SENSOR_DEW_POINT] = round(dew, 1)
+                except Exception:
+                    pass
 
             # Parse timestamp
             timestamp_value = row.get("reference_timestamp")
