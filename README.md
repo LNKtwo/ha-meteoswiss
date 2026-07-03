@@ -184,6 +184,49 @@ ERROR: Open-Meteo API timeout after retries
 - 🔧 **Diagnostic Category:** Cache-Stats und Stations-Map als Diagnostic-Entities
 - 🌐 Übersetzungen DE/EN aktualisiert
 
+### v5.2.0 (2026-07-03)
+- 🔄 **Pollen Sensoren komplett neu geschrieben**
+  - Root Cause: Sensor-Keys stimmten nicht mit Coordinator-Keys überein (warum Pollen nie funktionierte)
+  - Pollen-Typen entsprechen jetzt Open-Meteo API (`birch_pollen`, `alder_pollen`, etc.)
+  - Hazel entfernt (nicht in Open-Meteo), dafür Mugwort (Beifuß)
+  - `native_value` ist numerisch (grains/m³), Level-Namen als Attribut
+  - 24h Forecast in Attributen
+  - Schwellwerte pro Pollentyp (Low/Moderate/High/Very High)
+  - Kein `device_class` / `state_class` — reiner Wert-Sensor
+
+### v5.1.7 (2026-07-03)
+- 🐛 Pollen: `device_class=VOLATILE_ORGANIC_COMPOUNDS` entfernt (Pollen ist kein VOC)
+- 🐛 Pollen: `state_class=MEASUREMENT` entfernt (returnt Text, keine Zahl)
+- 🐛 Pollen: `None` statt "No data" / "Not active" Strings
+
+### v5.1.6 (2026-07-03)
+- 🐛 `EntityCategory` Import korrigiert (`homeassistant.helpers.entity` statt `homeassistant.const`)
+- 🔍 Vollständiger Code-Audit: alle Imports, Konstanten, Enums verifiziert
+
+### v5.1.5 (2026-07-03)
+- 🐛 `EntityCategory.HEALTH` existiert nicht mehr → Fallback auf `DIAGNOSTIC`
+
+### v5.1.4 (2026-07-03)
+- 🐛 `SensorDeviceClass.VOLATILE_ORGANIC_COMPOUND` → `COMPOUNDS` (HA hat Enum umbenannt)
+
+### v5.1.3 (2026-07-03)
+- 🐛 Dataclass: `pollen_type` / `pollen_type_name` brauchen Default-Werte (Python 3.14)
+
+### v5.1.2 (2026-07-03)
+- 🐛 Pollen-Sensoren wurden nie geladen (Platform nicht registriert)
+
+### v5.1.1 (2026-07-03)
+- 🐛 `SENSOR_WIND_GUST` fehlte im Import in coordinator.py (NameError bei jedem Fetch)
+
+### v5.1.0 (2026-07-03)
+- ✨ **Options Flow:** Update-Intervall ändern ohne Neukonfiguration
+- ✨ **Windböen-Sensor** (Sekundenböe, km/h) von MeteoSwiss
+- ✨ **Taupunkt-Sensor** berechnet aus Temp + Luftfeuchte (Magnus-Formel)
+- ✨ **Sonnenscheindauer** (10-Min-Summe, min) von MeteoSwiss
+- ✨ **Globalstrahlung** (W/m²) von MeteoSwiss
+- ✨ **UV-Index** von Open-Meteo API
+- 🔧 Diagnostic Category für Cache-Stats und Stations-Map
+
 ### v5.0.7 (2026-07-03)
 - 🐛 **FIXED:** Daily Forecast (5 Tage) wurde nicht angezeigt
 - Forecast-Coordinator hat Daten auf 24h abgeschnitten statt 120h (5 Tage)
