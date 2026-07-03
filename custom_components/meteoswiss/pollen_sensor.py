@@ -43,8 +43,8 @@ _LOGGER = logging.getLogger(__name__)
 class MeteoSwissPollenSensorEntityDescription(SensorEntityDescription):
     """Describes MeteoSwiss pollen sensor."""
 
-    pollen_type: str
-    pollen_type_name: str
+    pollen_type: str = ""
+    pollen_type_name: str = ""
 
 
 POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription, ...]] = (
