@@ -78,12 +78,10 @@
        custom_components.meteoswiss: debug
    ```
 
-2. **Relevante Logzeilen prüfen:**
+2. **Relevante Logzeilen prüfen (DEBUG):**
    ```
-   INFO: WeatherEntity initialized - lat/lon: 47.37/8.54
-   INFO: MeteoSwiss coordinator data: {temperature: 15.5, ...}
-   INFO: Forecast coordinator data (count): 120
-   INFO: ✅ Condition resolved via Open-Meteo: partlycloudy (code: 2)
+   DEBUG: Fetching data for station KZRH
+   DEBUG: Condition resolved via Open-Meteo: partlycloudy (code: 2)
    ```
 
 3. **Fallback-Kette prüfen:**
@@ -162,25 +160,32 @@ logger:
 ### Wichtige Log-Meldungen
 
 ```
-# Normale Operation
-INFO: WeatherEntity initialized - lat/lon: 47.37/8.54
-INFO: MeteoSwiss coordinator data: {temperature: 15.5, humidity: 65, ...}
-INFO: Forecast coordinator data (count): 120
-INFO: ✅ Condition resolved via Open-Meteo: partlycloudy (code: 2)
-
-# Warnungen (erwartet)
-WARNING: Using safe fallback condition: partlycloudy (no condition source available)
-WARNING: Forecast coordinator data (count): 0
+# Normale Operation (DEBUG)
+DEBUG: Fetching data for station KZRH
+DEBUG: Successfully parsed data: {temperature: 15.5, ...}
+DEBUG: Condition resolved via Open-Meteo: partlycloudy (code: 2)
 
 # Fehler (kritisch)
 ERROR: Failed to fetch station data
-ERROR: No condition data available, returning None
 ERROR: Open-Meteo API timeout after retries
 ```
 
 ---
 
 ## 📄 Changelog
+
+### v5.0.7 (2026-07-03)
+- 🐛 **FIXED:** Daily Forecast (5 Tage) wurde nicht angezeigt
+- Forecast-Coordinator hat Daten auf 24h abgeschnitten statt 120h (5 Tage)
+- `min(24, ...)` → `min(120, ...)` in forecast_coordinator.py
+
+### v5.0.6 (2026-07-03)
+- 🔧 Version sync: const.py 4.0.4 → 5.0.5
+- 🧹 Entfernt: `__init__.py.old`
+- 🔇 Logging reduziert: ~200 INFO → DEBUG (saubere HA Logs)
+- 🔗 Session Sharing: Eine gemeinsame aiohttp Session pro Config Entry
+- 🌤️ WMO Code Mapping: Code 0 respektiert Tag/Nacht, Duplikate entfernt
+- 🧹 Weather Entity: Property-Methoden aufgeräumt, keine Warning-Spam mehr
 
 ### v5.0.5 (2026-02-17) - FINAL
 - ✅ **FIXED:** Weather Entity attributes (temperature, humidity, pressure, wind) showing null
