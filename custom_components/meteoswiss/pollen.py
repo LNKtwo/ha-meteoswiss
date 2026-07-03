@@ -113,7 +113,7 @@ class MeteoSwissPollenAPI:
 
             # Cache results
             self._cached_data[cache_key] = pollen_data
-            _LOGGER.info("Fetched pollen data for %s: %d types", postal_code, len(pollen_data))
+            _LOGGER.debug("Fetched pollen data for %s: %d types", postal_code, len(pollen_data))
 
             return pollen_data
 

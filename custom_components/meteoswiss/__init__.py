@@ -79,7 +79,7 @@ async def _load_station_coordinates(station_id: str) -> tuple[float | None, floa
                     try:
                         lat = float(parts[14]) if parts[14] else None
                         lon = float(parts[15]) if parts[15] else None
-                        _LOGGER.info("Found coordinates for station %s: lat=%s, lon=%s", station_id, lat, lon)
+                        _LOGGER.debug("Found coordinates for station %s: lat=%s, lon=%s", station_id, lat, lon)
                         return lat, lon
                     except (ValueError, TypeError) as e:
                         _LOGGER.error("Could not parse coordinates: %s", e)
@@ -100,6 +100,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
 
+    # Create a single shared aiohttp session for all coordinators
+    shared_session = aiohttp.ClientSession(connector=_create_ssl_connector())
+
     # Create coordinator based on data source
     update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 600)
     data_source = entry.data.get(CONF_DATA_SOURCE, DATA_SOURCE_METEOSWISS)
@@ -118,16 +121,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             latitude=latitude,
             longitude=longitude,
             update_interval=update_interval,
+            session=shared_session,
         )
-        _LOGGER.info("Using Open-Meteo API for lat=%s, lon=%s", latitude, longitude)
+        _LOGGER.debug("Using Open-Meteo API for lat=%s, lon=%s", latitude, longitude)
 
-        # Forecast coordinator (also uses Open-Meteo)
         forecast_coordinator = MeteoSwissForecastCoordinator(
             hass,
             latitude=latitude,
             longitude=longitude,
             post_code=post_code,
-            update_interval=3600,  # Forecast updates every hour
+            update_interval=3600,
+            session=shared_session,
         )
 
     else:
@@ -136,8 +140,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             station_id=station_id,
             update_interval=update_interval,
+            session=shared_session,
         )
-        _LOGGER.info("Using MeteoSwiss API for station %s", station_id)
+        _LOGGER.debug("Using MeteoSwiss API for station %s", station_id)
 
         # Load station coordinates for forecast (Open-Meteo)
         # IMPORTANT: Use station coordinates, not entry coordinates (user's location)
@@ -156,9 +161,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             latitude=lat,
             longitude=lon,
             post_code=post_code,
-            update_interval=3600,  # Forecast updates every hour
+            update_interval=3600,
+            session=shared_session,
         )
-        _LOGGER.info("Forecast coordinator using Open-Meteo with station coordinates: lat=%s, lon=%s", lat, lon)
+        _LOGGER.debug("Forecast coordinator using Open-Meteo with station coordinates: lat=%s, lon=%s", lat, lon)
 
     # Fetch initial data for current weather
     await coordinator.async_config_entry_first_refresh()
@@ -167,7 +173,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await forecast_coordinator.async_config_entry_first_refresh()
 
     # Create alerts API and coordinator
-    alerts_api = MeteoSwissAlertsAPI(session=None)
+    alerts_api = MeteoSwissAlertsAPI(session=shared_session)
     alerts_api.postal_code = post_code
 
     from .binary_sensor import MeteoSwissAlertsCoordinator
@@ -202,7 +208,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"] = alerts_coordinator
     hass.data[DOMAIN][entry.entry_id]["pollen_coordinator"] = pollen_coordinator
     hass.data[DOMAIN][entry.entry_id]["data_source"] = data_source
-    hass.data[DOMAIN][entry.entry_id]["session"] = None
+    hass.data[DOMAIN][entry.entry_id]["session"] = shared_session
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -215,26 +221,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info("Unloading MeteoSwiss integration")
+    _LOGGER.debug("Unloading MeteoSwiss integration")
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        # Close forecast coordinator session
         entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
-        forecast_coordinator = entry_data.get("forecast_coordinator")
-        if forecast_coordinator:
-            await forecast_coordinator.async_close()
 
-        # Close alerts coordinator
-        alerts_coordinator = entry_data.get("alerts_coordinator")
-        if alerts_coordinator:
-            await alerts_coordinator.async_close()
-
-        # Close pollen coordinator
-        pollen_coordinator = entry_data.get("pollen_coordinator")
-        if pollen_coordinator:
-            await pollen_coordinator.async_close()
+        # Close shared session
+        session = entry_data.get("session")
+        if session and not session.closed:
+            await session.close()
 
         hass.data[DOMAIN].pop(entry.entry_id)
 

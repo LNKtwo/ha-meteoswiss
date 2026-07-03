@@ -37,7 +37,7 @@ class MeteoSwissPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch pollen data from MeteoSwiss."""
-        _LOGGER.info("Fetching pollen data for postal code %s", self._postal_code)
+        _LOGGER.debug("Fetching pollen data for postal code %s", self._postal_code)
 
         try:
             pollen_data = await self._pollen_api.get_pollen_data(self._postal_code)
@@ -46,7 +46,7 @@ class MeteoSwissPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.warning("No pollen data available for %s", self._postal_code)
                 return {}
 
-            _LOGGER.info("Successfully fetched pollen data: %d types", len(pollen_data))
+            _LOGGER.debug("Successfully fetched pollen data: %d types", len(pollen_data))
             return pollen_data
 
         except Exception as err:

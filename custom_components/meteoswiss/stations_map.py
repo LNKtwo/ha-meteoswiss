@@ -123,7 +123,7 @@ class MeteoSwissStationsMap:
                         continue
 
             self._loaded = True
-            _LOGGER.info("Loaded %d weather stations from MeteoSwiss", len(self._stations))
+            _LOGGER.debug("Loaded %d weather stations from MeteoSwiss", len(self._stations))
             return self._stations
 
         except Exception as err:

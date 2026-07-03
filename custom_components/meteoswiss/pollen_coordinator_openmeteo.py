@@ -157,7 +157,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.warning("No pollen data available (possibly outside pollen season)")
                 return {}
 
-            _LOGGER.info("✅ Successfully parsed pollen data")
+            _LOGGER.debug("✅ Successfully parsed pollen data")
 
             return result
 
@@ -169,7 +169,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API with caching."""
-        _LOGGER.info("=== FETCHING POLLEN DATA (lat=%s, lon=%s) ===", self.latitude, self.longitude)
+        _LOGGER.debug("=== FETCHING POLLEN DATA (lat=%s, lon=%s) ===", self.latitude, self.longitude)
 
         # Get cache
         cache = get_current_weather_cache()
@@ -178,10 +178,10 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Try cache first
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            _LOGGER.info("✅ Using cached pollen data")
+            _LOGGER.debug("✅ Using cached pollen data")
             return cached_data
 
-        _LOGGER.info("❌ Cache miss, fetching fresh pollen data")
+        _LOGGER.debug("❌ Cache miss, fetching fresh pollen data")
 
         data = await self._async_fetch_data()
 
@@ -193,13 +193,13 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Pollen data is empty!")
             raise UpdateFailed("Failed to fetch pollen data: data is empty")
 
-        _LOGGER.info("✅ Successfully fetched pollen data")
+        _LOGGER.debug("✅ Successfully fetched pollen data")
 
         # Cache result (TTL: 1800s = 30 min for pollen)
         cache.set(cache_key, data, ttl=1800.0)
-        _LOGGER.info("✅ Cached pollen data (TTL: 1800s)")
+        _LOGGER.debug("✅ Cached pollen data (TTL: 1800s)")
 
-        _LOGGER.info("=== POLLEN FETCH COMPLETE ===")
+        _LOGGER.debug("=== POLLEN FETCH COMPLETE ===")
 
         return data
 

@@ -260,7 +260,7 @@ def clear_all_caches() -> None:
     if _stations_cache:
         _stations_cache.clear()
 
-    _LOGGER.info("All caches cleared")
+    _LOGGER.debug("All caches cleared")
 
 
 def get_all_cache_stats() -> dict:

@@ -58,25 +58,37 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             update_interval=timedelta(seconds=update_interval),
         )
 
-    def _map_open_meteo_condition(self, weather_code: int | None) -> str:
+    def _map_open_meteo_condition(self, weather_code: int | None, is_night: bool = False) -> str:
         """Map Open-Meteo weather code to HA condition."""
         if weather_code is None:
             return "partlycloudy"
 
-        # WMO weather code mapping (simplified)
+        # WMO weather code mapping
         # https://open-meteo.com/en/docs
         if weather_code == 0:
-            return "clear-night"
-        elif weather_code in [1, 2, 3]:
+            return "clear-night" if is_night else "sunny"
+        elif weather_code == 1:
+            return "clear-night" if is_night else "sunny"
+        elif weather_code == 2:
             return "partlycloudy"
+        elif weather_code == 3:
+            return "cloudy"
         elif weather_code in [45, 48]:
             return "fog"
-        elif weather_code in [51, 53, 55, 61, 63, 65]:
+        elif weather_code in [51, 53, 55]:
             return "rainy"
-        elif weather_code in [71, 73, 75, 77, 85, 86]:
+        elif weather_code in [56, 57]:
+            return "rainy"
+        elif weather_code in [61, 63, 65]:
+            return "rainy"
+        elif weather_code in [66, 67]:
+            return "rainy"
+        elif weather_code in [71, 73, 75, 77]:
             return "snowy"
         elif weather_code in [80, 81, 82]:
             return "rainy"
+        elif weather_code in [85, 86]:
+            return "snowy"
         elif weather_code in [95, 96, 99]:
             return "lightning"
         else:
@@ -150,9 +162,20 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         weather_codes = hourly.get("weather_code", [])
 
         # Build forecast list (next 24 hours)
-        # Don't try to match current time - just take the next available hours
+        # Determine day/night for each hour based on time
         for i in range(min(24, len(times))):
             weather_code = weather_codes[i] if i < len(weather_codes) else None
+            
+            # Check if this hour is nighttime
+            time_str = times[i] if i < len(times) else ""
+            is_night = False
+            if time_str:
+                try:
+                    hour = int(time_str.split("T")[1].split(":")[0])
+                    is_night = hour >= 20 or hour < 6
+                except (IndexError, ValueError):
+                    pass
+            
             entry = {
                 "datetime": times[i],
                 "temperature": temps[i] if i < len(temps) else None,
@@ -161,16 +184,16 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
                 "precipitation": precip[i] if i < len(precip) else None,
                 "wind_speed": wind_speed[i] if i < len(wind_speed) else None,
                 "wind_direction": wind_dir[i] if i < len(wind_dir) else None,
-                "condition": self._map_open_meteo_condition(weather_code),
+                "condition": self._map_open_meteo_condition(weather_code, is_night=is_night),
             }
             forecast_data.append(entry)
 
-        _LOGGER.info("Fetched %d hours of forecast from Open-Meteo", len(forecast_data))
+        _LOGGER.debug("Fetched %d hours of forecast from Open-Meteo", len(forecast_data))
         return forecast_data
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Fetch forecast data from Open-Meteo API with caching."""
-        _LOGGER.info("Fetching forecast from Open-Meteo API")
+        _LOGGER.debug("Fetching forecast from Open-Meteo API")
 
         # Get cache
         cache = get_forecast_cache()
@@ -179,7 +202,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         # Try cache first
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            _LOGGER.info("Using cached forecast data")
+            _LOGGER.debug("Using cached forecast data")
             return cached_data
 
         try:
@@ -188,7 +211,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             # Cache the result
             cache.set(cache_key, data)
 
-            _LOGGER.info("Successfully updated forecast from Open-Meteo")
+            _LOGGER.debug("Successfully updated forecast from Open-Meteo")
             return data
         except aiohttp.ClientError as err:
             _LOGGER.error("Open-Meteo API request failed: %s", err)
@@ -203,7 +226,6 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         return "open-meteo"
 
     async def async_close(self) -> None:
-        """Close aiohttp session."""
-        if self._session is not None:
-            await self._session.close()
-            self._session = None
+        """Close is handled centrally by the integration setup."""
+        # Session is shared and closed in async_unload_entry
+        pass

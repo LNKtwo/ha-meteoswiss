@@ -63,7 +63,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
                     decoded = content_bytes.decode(encoding)
                     lines = decoded.strip().split("\n")
                     if len(lines) > 10:  # Check if we got valid data
-                        _LOGGER.info("Successfully decoded CSV with encoding: %s", encoding)
+                        _LOGGER.debug("Successfully decoded CSV with encoding: %s", encoding)
                         break
                 except UnicodeDecodeError:
                     continue
@@ -168,7 +168,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         lon = station["lon"] if station else None
 
         # Create config entry
-        _LOGGER.info("Creating MeteoSwiss entry for station: %s (lat=%s, lon=%s)", station_id, lat, lon)
+        _LOGGER.debug("Creating MeteoSwiss entry for station: %s (lat=%s, lon=%s)", station_id, lat, lon)
         return self.async_create_entry(
             title=f"MeteoSwiss {station_name} ({station_id.upper()})",
             data={
@@ -205,7 +205,7 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
         lon = user_input[CONF_LONGITUDE]
 
         # Create config entry
-        _LOGGER.info("Creating Open-Meteo entry for lat=%s, lon=%s", lat, lon)
+        _LOGGER.debug("Creating Open-Meteo entry for lat=%s, lon=%s", lat, lon)
         return self.async_create_entry(
             title=f"Open-Meteo ({lat:.2f}, {lon:.2f})",
             data={

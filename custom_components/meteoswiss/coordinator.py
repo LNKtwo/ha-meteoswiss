@@ -99,14 +99,14 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 if asset_key in assets:
                     csv_url = assets[asset_key].get("href")
-                    _LOGGER.info("Found CSV URL: %s", csv_url)
+                    _LOGGER.debug("Found CSV URL: %s", csv_url)
                     return csv_url
 
                 # Fallback to t_recent.csv if t_now.csv not available
                 asset_key = f"ogd-smn_{self.station_id}_t_recent.csv"
                 if asset_key in assets:
                     csv_url = assets[asset_key].get("href")
-                    _LOGGER.info("Found CSV URL (fallback): %s", csv_url)
+                    _LOGGER.debug("Found CSV URL (fallback): %s", csv_url)
                     return csv_url
 
                 _LOGGER.warning("No t_now.csv or t_recent.csv found for station %s", self.station_id)
@@ -268,7 +268,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result["last_update"] = datetime.now().isoformat()
 
             # Log final result
-            _LOGGER.info("Parsed result: temp=%s, humidity=%s, wind=%s, dir=%s, pressure=%s",
+            _LOGGER.debug("Parsed result: temp=%s, humidity=%s, wind=%s, dir=%s, pressure=%s",
                         result[SENSOR_TEMPERATURE],
                         result[SENSOR_HUMIDITY],
                         result[SENSOR_WIND_SPEED],
@@ -285,7 +285,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API with caching."""
-        _LOGGER.info("=== FETCHING DATA FOR STATION %s ===", self.station_id)
+        _LOGGER.debug("Fetching data for station %s", self.station_id)
 
         # Get cache
         cache = get_current_weather_cache()
@@ -294,11 +294,10 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Try cache first
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            _LOGGER.info("✅ Using cached data for station %s", self.station_id)
-            _LOGGER.info("Cache data: %s", cached_data)
+            _LOGGER.debug("Using cached data for station %s", self.station_id)
             return cached_data
 
-        _LOGGER.info("❌ Cache miss, fetching fresh data for station %s", self.station_id)
+        _LOGGER.debug("Cache miss, fetching fresh data for station %s", self.station_id)
 
         # Get CSV URL
         csv_url = await self._async_get_station_data_url()
@@ -307,7 +306,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Failed to find station data URL")
             raise UpdateFailed("Could not find station data URL")
 
-        _LOGGER.info("Fetching CSV from: %s", csv_url)
+        _LOGGER.debug("Fetching CSV from: %s", csv_url)
 
         # Download and parse CSV
         parsed_data = await self._async_download_and_parse_csv(csv_url)
@@ -320,20 +319,17 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Parsed data is empty!")
             raise UpdateFailed("Failed to parse station data: parsed_data is empty")
 
-        _LOGGER.info("✅ Successfully parsed data: %s", parsed_data)
+        _LOGGER.debug("Successfully parsed data: %s", parsed_data)
 
         self._last_update = datetime.now()
 
         # Cache result
         cache.set(cache_key, parsed_data)
-        _LOGGER.info("✅ Cached data for station %s (TTL: 600s)", self.station_id)
-
-        _LOGGER.info("=== FETCH COMPLETE FOR STATION %s ===", self.station_id)
+        _LOGGER.debug("Cached data for station %s (TTL: 600s)", self.station_id)
 
         return parsed_data
 
     async def async_close(self) -> None:
-        """Close aiohttp session."""
-        if self._session is not None:
-            await self._session.close()
-            self._session = None
+        """Close is handled centrally by the integration setup."""
+        # Session is shared and closed in async_unload_entry
+        pass

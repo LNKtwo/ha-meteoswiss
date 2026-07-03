@@ -112,7 +112,7 @@ async def async_setup_entry(
     async_add_entities,
 ) -> None:
     """Set up pollen sensor platform."""
-    _LOGGER.info("Setting up MeteoSwiss pollen sensor platform for %s", entry.data.get(CONF_STATION_NAME))
+    _LOGGER.debug("Setting up MeteoSwiss pollen sensor platform for %s", entry.data.get(CONF_STATION_NAME))
 
     coordinator = hass.data[DOMAIN][entry.entry_id].get("pollen_coordinator")
 

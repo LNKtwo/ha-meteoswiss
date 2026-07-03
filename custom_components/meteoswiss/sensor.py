@@ -99,7 +99,7 @@ async def async_setup_entry(
     async_add_entities,
 ) -> None:
     """Set up sensor platform."""
-    _LOGGER.info("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
+    _LOGGER.debug("Setting up MeteoSwiss sensor platform for %s", entry.data.get(CONF_STATION_NAME))
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     station_name = entry.data.get(CONF_STATION_NAME, "Unknown")
@@ -116,14 +116,14 @@ async def async_setup_entry(
         stations_map_sensor = MeteoSwissStationsMapSensor(stations_map)
         entities.append(stations_map_sensor)
         hass.data[DOMAIN]["stations_map_sensor_added"] = True
-        _LOGGER.info("Added stations map sensor")
+        _LOGGER.debug("Added stations map sensor")
 
     # Add cache stats sensor (only once)
     if not hass.data[DOMAIN].get("cache_stats_sensor_added", False):
         cache_stats_sensor = MeteoSwissCacheStatsSensor()
         entities.append(cache_stats_sensor)
         hass.data[DOMAIN]["cache_stats_sensor_added"] = True
-        _LOGGER.info("Added cache stats sensor")
+        _LOGGER.debug("Added cache stats sensor")
 
     async_add_entities(entities)
 
@@ -154,20 +154,12 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from coordinator."""
-        _LOGGER.info("=== SENSOR UPDATE: %s ===", self.entity_description.key)
-        _LOGGER.info("Coordinator data type: %s", type(self.coordinator.data))
-        _LOGGER.info("Coordinator data: %s", self.coordinator.data)
-
         if self.coordinator.data:
             value_key = self.entity_description.value_key
-            _LOGGER.info("Looking for key: %s", value_key)
-
             value = self.coordinator.data.get(value_key)
-            _LOGGER.info("Found value: %s (type: %s)", value, type(value))
-
             self._attr_native_value = value
         else:
-            _LOGGER.warning("Coordinator data is None or empty!")
+            _LOGGER.debug("Coordinator data is None or empty for %s", self.entity_description.key)
             self._attr_native_value = None
 
         super()._handle_coordinator_update()
@@ -193,7 +185,7 @@ class MeteoSwissStationsMapSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Update stations map."""
-        _LOGGER.info("Updating stations map")
+        _LOGGER.debug("Updating stations map")
 
         await self._stations_map.load_stations()
         stations = self._stations_map.get_all_stations()
@@ -207,7 +199,7 @@ class MeteoSwissStationsMapSensor(SensorEntity):
             "picture_elements_config": self._stations_map.to_picture_elements_config(),
         }
 
-        _LOGGER.info("Stations map updated: %d stations", len(stations))
+        _LOGGER.debug("Stations map updated: %d stations", len(stations))
 
 
 class MeteoSwissCacheStatsSensor(SensorEntity):

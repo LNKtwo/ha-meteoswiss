@@ -112,7 +112,7 @@ class MeteoSwissAlertsAPI:
             url = f"{METEOSWISS_APP_API_URL}?plz={plz_formatted}"
 
             alerts = await self._fetch_and_parse_alerts(url, postal_code)
-            _LOGGER.info("Found %d alerts for postal code %s", len(alerts), postal_code)
+            _LOGGER.debug("Found %d alerts for postal code %s", len(alerts), postal_code)
 
             return alerts
 
@@ -123,7 +123,7 @@ class MeteoSwissAlertsAPI:
     @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
     async def _fetch_and_parse_alerts(self, url: str, postal_code: str) -> list:
         """Fetch and parse alerts from API with retry logic."""
-        _LOGGER.info("Fetching alerts from: %s", url)
+        _LOGGER.debug("Fetching alerts from: %s", url)
 
         async with self._session.get(url) as response:
             if response.status != 200:

@@ -51,7 +51,7 @@ async def async_setup_entry(
     # Listen for forecast coordinator updates
     if forecast_coordinator:
         forecast_coordinator.async_add_listener(entity._handle_forecast_update)
-        _LOGGER.info("Subscribed to forecast coordinator updates")
+        _LOGGER.debug("Subscribed to forecast coordinator updates")
 
     async_add_entities([entity])
 
@@ -62,10 +62,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     # WMO weather code mapping for Open-Meteo
     # https://open-meteo.com/en/docs
     WEATHER_CODE_MAP: Final[dict[int, str]] = {
-        0: "clear-night",
+        0: "sunny",
         1: "sunny",
         2: "partlycloudy",
-        3: "partlycloudy",
+        3: "cloudy",
         45: "fog",
         48: "fog",
         51: "rainy",
@@ -81,7 +81,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         71: "snowy",
         73: "snowy",
         75: "snowy",
-        77: "snowy",
         77: "snowy",
         80: "rainy",
         81: "rainy",
@@ -136,18 +135,18 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         # Log coordinates for debug
         lat = entry.data.get(CONF_LATITUDE)
         lon = entry.data.get(CONF_LONGITUDE)
-        _LOGGER.info("WeatherEntity initialized - station: %s, lat/lon: %s/%s", station_name, lat, lon)
+        _LOGGER.debug("WeatherEntity initialized - station: %s, lat/lon: %s/%s", station_name, lat, lon)
 
     @property
     def coordinator_data(self) -> dict:
         """Return coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Current weather coordinator is None!")
+            _LOGGER.debug("Current weather coordinator is None!")
             return {}
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty!")
+            _LOGGER.debug("Coordinator data is empty!")
             return {}
 
         _LOGGER.debug("MeteoSwiss coordinator data: %s", data)
@@ -157,7 +156,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def forecast_coordinator_data(self) -> list:
         """Return forecast coordinator data."""
         if not self._forecast_coordinator:
-            _LOGGER.warning("Forecast coordinator is None!")
+            _LOGGER.debug("Forecast coordinator is None!")
             return []
 
         data = self._forecast_coordinator.data
@@ -215,7 +214,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                                 weather_code = entry.get("weather_code")
                                 condition = self._map_open_meteo_condition(weather_code)
                                 if condition:
-                                    _LOGGER.info("✅ Condition resolved via Open-Meteo: %s (code: %s)", condition, weather_code)
+                                    _LOGGER.debug("Condition resolved via Open-Meteo: %s (code: %s)", condition, weather_code)
                                     return condition
                     except Exception as err:
                         _LOGGER.debug("Error parsing forecast datetime: %s", err)
@@ -226,13 +225,13 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             weather_code = first_entry.get("weather_code")
             condition = self._map_open_meteo_condition(weather_code)
             if condition:
-                _LOGGER.info("✅ Condition resolved via Open-Meteo (first entry): %s (code: %s)", condition, weather_code)
+                _LOGGER.debug("Condition resolved via Open-Meteo (first entry): %s (code: %s)", condition, weather_code)
                 return condition
             else:
                 _LOGGER.debug("Open-Meteo forecast exists but no valid weather_code")
 
         else:
-            _LOGGER.info("Open-Meteo current data not available")
+            _LOGGER.debug("Open-Meteo current data not available")
 
         # Try MeteoSwiss symbol/icon
         ms_data = self.coordinator_data
@@ -242,7 +241,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                 if symbol:
                     condition = self.METEOSWISS_CONDITION_MAP.get(str(symbol).lower())
                     if condition:
-                        _LOGGER.info("✅ Condition resolved via MeteoSwiss symbol: %s (symbol: %s)", condition, symbol)
+                        _LOGGER.debug("✅ Condition resolved via MeteoSwiss symbol: %s (symbol: %s)", condition, symbol)
                         return condition
                     else:
                         _LOGGER.debug("MeteoSwiss symbol '%s' has no mapping", symbol)
@@ -252,22 +251,22 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             precip = ms_data.get(SENSOR_PRECIPITATION)
             if precip is not None:
                 if precip > 0:
-                    _LOGGER.info("✅ Condition resolved via precipitation fallback: rainy (%s mm)", precip)
+                    _LOGGER.debug("✅ Condition resolved via precipitation fallback: rainy (%s mm)", precip)
                     return "rainy"
 
                 # Time-based fallback (day/night)
                 now_hour = datetime.now().hour
                 is_night = now_hour >= 20 or now_hour < 6
                 if is_night:
-                    _LOGGER.info("✅ Condition resolved via time fallback: clear-night")
+                    _LOGGER.debug("✅ Condition resolved via time fallback: clear-night")
                     return "clear-night"
                 else:
-                    _LOGGER.info("✅ Condition resolved via time fallback: partlycloudy")
+                    _LOGGER.debug("✅ Condition resolved via time fallback: partlycloudy")
                     return "partlycloudy"
 
         # Safe fallback if any numeric data exists
         if ms_data and (ms_data.get(SENSOR_TEMPERATURE) is not None or ms_data.get(SENSOR_HUMIDITY) is not None):
-            _LOGGER.warning("⚠️ Using safe fallback condition: partlycloudy (no condition source available)")
+            _LOGGER.debug("Using safe fallback condition: partlycloudy (no condition source available)")
             return "partlycloudy"
 
         # Absolutely no data
@@ -283,100 +282,95 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
     def temperature(self) -> float | None:
         """Return temperature from coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Coordinator is None")
+            _LOGGER.debug("Coordinator is None")
             return None
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty")
+            _LOGGER.debug("Coordinator data is empty")
             return None
 
         temp = data.get(SENSOR_TEMPERATURE)
         if temp is not None:
-            _LOGGER.info("Temperature: %s °C (from coordinator)", temp)
             return temp
 
-        _LOGGER.warning("Temperature not found in coordinator data")
+        _LOGGER.debug("Temperature not found in coordinator data")
         return None
 
     @property
     def humidity(self) -> int | None:
         """Return humidity from coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Coordinator is None")
+            _LOGGER.debug("Coordinator is None")
             return None
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty")
+            _LOGGER.debug("Coordinator data is empty")
             return None
 
         hum = data.get(SENSOR_HUMIDITY)
         if hum is not None:
-            _LOGGER.info("Humidity: %s %% (from coordinator)", hum)
             return hum
 
-        _LOGGER.warning("Humidity not found in coordinator data")
+        _LOGGER.debug("Humidity not found in coordinator data")
         return None
 
     @property
     def pressure(self) -> float | None:
         """Return pressure from coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Coordinator is None")
+            _LOGGER.debug("Coordinator is None")
             return None
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty")
+            _LOGGER.debug("Coordinator data is empty")
             return None
 
         press = data.get(SENSOR_PRESSURE)
         if press is not None:
-            _LOGGER.info("Pressure: %s hPa (from coordinator)", press)
             return press
 
-        _LOGGER.warning("Pressure not found in coordinator data")
+        _LOGGER.debug("Pressure not found in coordinator data")
         return None
 
     @property
     def wind_speed(self) -> float | None:
         """Return wind speed from coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Coordinator is None")
+            _LOGGER.debug("Coordinator is None")
             return None
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty")
+            _LOGGER.debug("Coordinator data is empty")
             return None
 
         speed = data.get(SENSOR_WIND_SPEED)
         if speed is not None:
-            _LOGGER.info("Wind speed: %s km/h (from coordinator)", speed)
             return speed
 
-        _LOGGER.warning("Wind speed not found in coordinator data")
+        _LOGGER.debug("Wind speed not found in coordinator data")
         return None
 
     @property
     def wind_bearing(self) -> float | None:
         """Return wind bearing from coordinator data."""
         if not self.coordinator:
-            _LOGGER.warning("Coordinator is None")
+            _LOGGER.debug("Coordinator is None")
             return None
 
         data = self.coordinator.data
         if not data:
-            _LOGGER.warning("Coordinator data is empty")
+            _LOGGER.debug("Coordinator data is empty")
             return None
 
         bearing = data.get(SENSOR_WIND_DIRECTION)
         if bearing is not None:
-            _LOGGER.info("Wind bearing: %s ° (from coordinator)", bearing)
             return bearing
 
-        _LOGGER.warning("Wind bearing not found in coordinator data")
+        _LOGGER.debug("Wind bearing not found in coordinator data")
         return None
 
     @property
@@ -398,10 +392,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         forecast_data = self.forecast_coordinator_data
 
         if not forecast_data:
-            _LOGGER.warning("No forecast data available for hourly forecast, returning empty list")
+            _LOGGER.debug("No forecast data available for hourly forecast, returning empty list")
             return []
 
-        _LOGGER.info("Building hourly forecast from %d entries", len(forecast_data))
+        _LOGGER.debug("Building hourly forecast from %d entries", len(forecast_data))
 
         ha_forecast = []
         for entry in forecast_data[:24]:  # Limit to 24 hours
@@ -433,10 +427,10 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         forecast_data = self.forecast_coordinator_data
 
         if not forecast_data:
-            _LOGGER.warning("No forecast data available for daily forecast, returning empty list")
+            _LOGGER.debug("No forecast data available for daily forecast, returning empty list")
             return []
 
-        _LOGGER.info("Building daily forecast from %d hourly entries", len(forecast_data))
+        _LOGGER.debug("Building daily forecast from %d hourly entries", len(forecast_data))
 
         # Group hourly data by day (up to 5 days = 120 hours)
         daily_data = {}

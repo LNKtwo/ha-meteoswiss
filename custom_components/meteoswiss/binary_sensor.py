@@ -60,7 +60,7 @@ async def async_setup_entry(
     async_add_entities,
 ) -> None:
     """Set up binary sensor platform."""
-    _LOGGER.info("Setting up MeteoSwiss alerts binary sensor platform for %s", entry.data.get(CONF_STATION_NAME))
+    _LOGGER.debug("Setting up MeteoSwiss alerts binary sensor platform for %s", entry.data.get(CONF_STATION_NAME))
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"]
     postal_code = entry.data.get(CONF_POSTAL_CODE)
@@ -172,11 +172,11 @@ class MeteoSwissAlertsCoordinator(DataUpdateCoordinator[list[WeatherAlert]]):
 
     async def _async_update_data(self) -> list[WeatherAlert]:
         """Fetch alerts from MeteoSwiss App API."""
-        _LOGGER.info("Fetching MeteoSwiss alerts")
+        _LOGGER.debug("Fetching MeteoSwiss alerts")
 
         alerts = await self._alerts_api.get_alerts(self._alerts_api.postal_code)
 
-        _LOGGER.info("Successfully fetched %d MeteoSwiss alerts", len(alerts))
+        _LOGGER.debug("Successfully fetched %d MeteoSwiss alerts", len(alerts))
 
         return alerts
 
