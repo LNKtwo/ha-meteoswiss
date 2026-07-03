@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
-from homeassistant.const import PERCENTAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
@@ -21,17 +20,41 @@ from .const import (
     CONF_STATION_NAME,
     DOMAIN,
 )
-from .pollen import (
-    MeteoSwissPollenAPI,
-    PollenMeasurement,
-    POLLEN_AMBROSIA,
-    POLLEN_ALDER,
-    POLLEN_BIRCH,
-    POLLEN_GRASS,
-    POLLEN_HAZEL,
-)
 
 _LOGGER = logging.getLogger(__name__)
+
+# Pollen types matching Open-Meteo Air Quality API parameter names
+POLLEN_BIRCH = "birch_pollen"
+POLLEN_ALDER = "alder_pollen"
+POLLEN_GRASS = "grass_pollen"
+POLLEN_MUGWORT = "mugwort_pollen"
+POLLEN_RAGWEED = "ragweed_pollen"
+
+
+# Pollen level thresholds (grains/m³)
+def _pollen_level(value: float | None, low: float, mod: float, high: float) -> str:
+    """Convert pollen concentration to level name."""
+    if value is None or value == 0:
+        return "None"
+    elif value < low:
+        return "Low"
+    elif value < mod:
+        return "Moderate"
+    elif value < high:
+        return "High"
+    else:
+        return "Very High"
+
+
+# Thresholds per pollen type (grains/m³)
+# Based on standard allergological thresholds
+POLLEN_THRESHOLDS = {
+    POLLEN_BIRCH: (10, 50, 200),
+    POLLEN_ALDER: (10, 50, 200),
+    POLLEN_GRASS: (5, 20, 50),
+    POLLEN_MUGWORT: (10, 50, 200),
+    POLLEN_RAGWEED: (5, 20, 50),
+}
 
 
 @dataclass
@@ -44,7 +67,7 @@ class MeteoSwissPollenSensorEntityDescription(SensorEntityDescription):
 
 POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription, ...]] = (
     MeteoSwissPollenSensorEntityDescription(
-        key=POLLEN_BIRCH,
+        key="birch_pollen",
         translation_key="pollen_birch",
         name="Birch Pollen",
         icon="mdi:tree",
@@ -52,15 +75,7 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         pollen_type_name="Birch",
     ),
     MeteoSwissPollenSensorEntityDescription(
-        key=POLLEN_HAZEL,
-        translation_key="pollen_hazel",
-        name="Hazel Pollen",
-        icon="mdi:tree-outline",
-        pollen_type=POLLEN_HAZEL,
-        pollen_type_name="Hazel",
-    ),
-    MeteoSwissPollenSensorEntityDescription(
-        key=POLLEN_ALDER,
+        key="alder_pollen",
         translation_key="pollen_alder",
         name="Alder Pollen",
         icon="mdi:pine-tree",
@@ -68,7 +83,7 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         pollen_type_name="Alder",
     ),
     MeteoSwissPollenSensorEntityDescription(
-        key=POLLEN_GRASS,
+        key="grass_pollen",
         translation_key="pollen_grass",
         name="Grass Pollen",
         icon="mdi:grass",
@@ -76,12 +91,20 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         pollen_type_name="Grass",
     ),
     MeteoSwissPollenSensorEntityDescription(
-        key=POLLEN_AMBROSIA,
-        translation_key="pollen_ambrosia",
-        name="Ambrosia Pollen",
+        key="mugwort_pollen",
+        translation_key="pollen_mugwort",
+        name="Mugwort Pollen",
         icon="mdi:flower",
-        pollen_type=POLLEN_AMBROSIA,
-        pollen_type_name="Ambrosia",
+        pollen_type=POLLEN_MUGWORT,
+        pollen_type_name="Mugwort",
+    ),
+    MeteoSwissPollenSensorEntityDescription(
+        key="ragweed_pollen",
+        translation_key="pollen_ambrosia",
+        name="Ragweed Pollen",
+        icon="mdi:sprout",
+        pollen_type=POLLEN_RAGWEED,
+        pollen_type_name="Ragweed",
     ),
 )
 
@@ -141,21 +164,18 @@ class MeteoSwissPollenSensor(SensorEntity):
         self._pollen_type_name = description.pollen_type_name
 
     @property
-    def native_value(self) -> str | None:
-        """Return the state of the sensor."""
+    def native_value(self) -> float | None:
+        """Return the current pollen concentration (grains/m³)."""
         if self.coordinator.data is None:
             return None
 
-        pollen_data = self.coordinator.data
-        measurement = pollen_data.get(self._pollen_type)
+        pollen_data = self.coordinator.data.get(self._pollen_type)
 
-        if measurement is None:
+        if pollen_data is None:
             return None
 
-        if measurement.value is None:
-            return None
-
-        return measurement.level_name or f"Level {measurement.level}"
+        current = pollen_data.get("current")
+        return current if current is not None else None
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -164,27 +184,30 @@ class MeteoSwissPollenSensor(SensorEntity):
         super()._handle_coordinator_update()
 
     @property
-    def extra_state_attributes(self) -> dict[str, str | int | None]:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         if self.coordinator.data is None:
-            return {}
+            return None
 
-        pollen_data = self.coordinator.data
-        measurement = pollen_data.get(self._pollen_type)
+        pollen_data = self.coordinator.data.get(self._pollen_type)
 
-        if measurement is None:
+        if pollen_data is None:
             return {
                 "pollen_type": self._pollen_type,
                 "pollen_type_name": self._pollen_type_name,
-                "active": False,
+                "level": None,
+                "level_name": "No data",
+                "unit": "grains/m³",
             }
+
+        current = pollen_data.get("current", 0)
+        thresholds = POLLEN_THRESHOLDS.get(self._pollen_type, (5, 20, 50))
+        level_name = _pollen_level(current, *thresholds)
 
         return {
             "pollen_type": self._pollen_type,
             "pollen_type_name": self._pollen_type_name,
-            "level": measurement.level,
-            "level_name": measurement.level_name,
-            "value": measurement.value,
-            "is_high_risk": measurement.is_high_risk() if hasattr(measurement, 'is_high_risk') else False,
-            "active": measurement.is_active() if hasattr(measurement, 'is_active') else False,
+            "level_name": level_name,
+            "unit": pollen_data.get("unit", "grains/m³"),
+            "forecast_24h": pollen_data.get("forecast", [])[:24],
         }
