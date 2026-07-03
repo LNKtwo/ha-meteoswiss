@@ -18,9 +18,18 @@ from homeassistant.const import (
     UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
-    UnitOfIrradiance,
-    UnitOfTime,
 )
+
+try:
+    from homeassistant.const import UnitOfIrradiance
+except ImportError:
+    UnitOfIrradiance = type("UnitOfIrradiance", (), {"WATTS_PER_SQUARE_METER": "W/m²"})
+
+try:
+    from homeassistant.const import UnitOfTime
+except ImportError:
+    UnitOfTime = type("UnitOfTime", (), {"MINUTES": "min", "HOURS": "h", "DAYS": "d"})
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
@@ -173,6 +182,16 @@ async def async_setup_entry(
         entities.append(cache_stats_sensor)
         hass.data[DOMAIN]["cache_stats_sensor_added"] = True
         _LOGGER.debug("Added cache stats sensor")
+
+    # Add pollen sensors
+    pollen_coordinator = hass.data[DOMAIN][entry.entry_id].get("pollen_coordinator")
+    if pollen_coordinator:
+        from .pollen_sensor import POLLEN_SENSOR_DESCRIPTIONS, MeteoSwissPollenSensor
+        for description in POLLEN_SENSOR_DESCRIPTIONS:
+            entities.append(
+                MeteoSwissPollenSensor(pollen_coordinator, entry, description, station_name)
+            )
+        _LOGGER.debug("Added %d pollen sensors", len(POLLEN_SENSOR_DESCRIPTIONS))
 
     async_add_entities(entities)
 
