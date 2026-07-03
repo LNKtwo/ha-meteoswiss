@@ -6,10 +6,8 @@ from dataclasses import dataclass
 from typing import Final
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
-    SensorStateClass,
 )
 from homeassistant.const import PERCENTAGE
 from homeassistant.config_entries import ConfigEntry
@@ -49,9 +47,6 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         key=POLLEN_BIRCH,
         translation_key="pollen_birch",
         name="Birch Pollen",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="",
         icon="mdi:tree",
         pollen_type=POLLEN_BIRCH,
         pollen_type_name="Birch",
@@ -60,9 +55,6 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         key=POLLEN_HAZEL,
         translation_key="pollen_hazel",
         name="Hazel Pollen",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="",
         icon="mdi:tree-outline",
         pollen_type=POLLEN_HAZEL,
         pollen_type_name="Hazel",
@@ -71,9 +63,6 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         key=POLLEN_ALDER,
         translation_key="pollen_alder",
         name="Alder Pollen",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="",
         icon="mdi:pine-tree",
         pollen_type=POLLEN_ALDER,
         pollen_type_name="Alder",
@@ -82,9 +71,6 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         key=POLLEN_GRASS,
         translation_key="pollen_grass",
         name="Grass Pollen",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="",
         icon="mdi:grass",
         pollen_type=POLLEN_GRASS,
         pollen_type_name="Grass",
@@ -93,9 +79,6 @@ POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissPollenSensorEntityDescription,
         key=POLLEN_AMBROSIA,
         translation_key="pollen_ambrosia",
         name="Ambrosia Pollen",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="",
         icon="mdi:flower",
         pollen_type=POLLEN_AMBROSIA,
         pollen_type_name="Ambrosia",
@@ -167,10 +150,10 @@ class MeteoSwissPollenSensor(SensorEntity):
         measurement = pollen_data.get(self._pollen_type)
 
         if measurement is None:
-            return "No data"
+            return None
 
         if measurement.value is None:
-            return "Not active"
+            return None
 
         return measurement.level_name or f"Level {measurement.level}"
 
