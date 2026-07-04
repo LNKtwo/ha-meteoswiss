@@ -5,7 +5,6 @@ import logging
 from typing import Any
 
 import aiohttp
-from aiohttp import TCPConnector
 
 import voluptuous as vol
 
@@ -14,6 +13,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    _create_ssl_connector,
     CONF_DATA_SOURCE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -30,11 +30,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-def _create_ssl_connector() -> TCPConnector:
-    """Create a new SSL connector for each session to avoid reuse issues."""
-    return TCPConnector(ssl=False)
-
 
 class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for meteoswiss."""

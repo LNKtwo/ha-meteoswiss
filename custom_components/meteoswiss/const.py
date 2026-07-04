@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from aiohttp import TCPConnector
+
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
 VERSION: Final = "5.2.0"
@@ -69,3 +71,13 @@ CONDITION_SUNNY = "sunny"
 
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
+
+
+# Session utilities
+def _create_ssl_connector() -> TCPConnector:
+    """Create a new SSL connector for aiohttp sessions.
+
+    SSL is enabled. Previously disabled for systems with outdated certificates,
+    but both data.geo.admin.ch and api.open-meteo.com have valid certs.
+    """
+    return TCPConnector(ssl=True)

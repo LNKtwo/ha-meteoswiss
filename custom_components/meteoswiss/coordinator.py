@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import aiohttp
-from aiohttp import TCPConnector
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -34,12 +33,9 @@ from .const import (
     STAC_COLLECTION,
 )
 from .retry import async_retry_with_backoff
+from .const import _create_ssl_connector
 
 _LOGGER = logging.getLogger(__name__)
-
-def _create_ssl_connector() -> TCPConnector:
-    """Create a new SSL connector for each session to avoid reuse issues."""
-    return TCPConnector(ssl=False)
 
 # MeteoSwiss CSV parameter IDs (10-minute granularity)
 # These are the column headers in the CSV files from data.geo.admin.ch

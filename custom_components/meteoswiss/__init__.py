@@ -4,13 +4,13 @@ from __future__ import annotations
 import logging
 
 import aiohttp
-from aiohttp import TCPConnector
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .alerts import MeteoSwissAlertsAPI
 from .const import (
+    _create_ssl_connector,
     CONF_DATA_SOURCE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -35,11 +35,6 @@ PLATFORMS: list[Platform] = [
     Platform.WEATHER,
     Platform.BINARY_SENSOR,
 ]
-
-
-def _create_ssl_connector() -> TCPConnector:
-    """Create a new SSL connector for each session to avoid reuse issues."""
-    return TCPConnector(ssl=False)
 
 
 async def _load_station_coordinates(station_id: str) -> tuple[float | None, float | None]:

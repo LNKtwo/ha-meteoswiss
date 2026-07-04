@@ -7,22 +7,17 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
-from aiohttp import TCPConnector
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cache import get_forecast_cache
+from .const import _create_ssl_connector
 
 _LOGGER = logging.getLogger(__name__)
 
 # Open-Meteo API
 OPEN_METEO_BASE_URL = "https://api.open-meteo.com/v1/forecast"
-
-
-def _create_ssl_connector() -> TCPConnector:
-    """Create a new SSL connector for each session to avoid reuse issues."""
-    return TCPConnector(ssl=False)
 
 
 class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):

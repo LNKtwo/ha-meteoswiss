@@ -104,7 +104,8 @@ class MeteoSwissAlertsAPI:
             List of weather alerts
         """
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            from .const import _create_ssl_connector
+            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
 
         try:
             # Format PLZ: add "00" suffix (e.g., "8001" -> "800100")
