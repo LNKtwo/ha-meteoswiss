@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.1.0] — 2026-07-31
+
+### Added
+- API timeout: 30s default on all requests (was 5min unset default)
+- Circuit breaker: after 5 consecutive failures, pauses updates for 5 minutes
+
+### Changed
+- WMO weather code mapping centralized in `const.py` (removed 3 duplicate copies)
+- Binary sensor migrated to `CoordinatorEntity` pattern (HA best practice)
+
+---
+
 ## [6.0.1] — 2026-07-31
 
 ### Fixed

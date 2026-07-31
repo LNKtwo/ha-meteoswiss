@@ -1,7 +1,7 @@
 # MeteoSwiss Integration for Home Assistant
 
 [![hacs](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/LNKtwo/ha-meteoswiss)
-[![version](https://img.shields.io/badge/version-6.0.1-blue.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
+[![version](https://img.shields.io/badge/version-6.1.0-blue.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Swiss weather data directly from **MeteoSwiss** — current conditions, forecasts, official weather alerts, and pollen data for Home Assistant.
