@@ -138,12 +138,6 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
         _LOGGER.debug("Forecast update triggered")
         self.async_write_ha_state()
 
-    async def async_will_remove_from_hass(self) -> None:
-        """When entity is removed from hass."""
-        if self._forecast_coordinator:
-            self._forecast_coordinator.async_remove_listener(self._handle_forecast_update)
-            _LOGGER.debug("Unsubscribed from forecast coordinator updates")
-
     @property
     def supported_features(self) -> int:
         """Return supported features."""
