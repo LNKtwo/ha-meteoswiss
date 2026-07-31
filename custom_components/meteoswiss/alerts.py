@@ -200,13 +200,13 @@ class MeteoSwissAlertsAPI:
 
             if valid_from_ts:
                 try:
-                    valid_from = datetime.fromtimestamp(valid_from_ts / 1000)
+                    valid_from = datetime.fromtimestamp(valid_from_ts / 1000, tz=timezone.utc)
                 except (ValueError, TypeError):
                     pass
 
             if valid_to_ts:
                 try:
-                    valid_to = datetime.fromtimestamp(valid_to_ts / 1000)
+                    valid_to = datetime.fromtimestamp(valid_to_ts / 1000, tz=timezone.utc)
                 except (ValueError, TypeError):
                     pass
 
