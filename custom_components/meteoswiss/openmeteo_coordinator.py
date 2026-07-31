@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .cache import get_current_weather_cache
 from .const import (
     CONF_POSTAL_CODE,
+    DEFAULT_API_TIMEOUT,
     DOMAIN,
     MIN_UPDATE_INTERVAL,
     SENSOR_HUMIDITY,
@@ -21,6 +22,7 @@ from .const import (
     SENSOR_TEMPERATURE,
     SENSOR_WIND_DIRECTION,
     SENSOR_WIND_SPEED,
+    WMO_WEATHER_CODES,
 )
 from .retry import async_retry_with_backoff
 
@@ -29,8 +31,8 @@ _LOGGER = logging.getLogger(__name__)
 # Open-Meteo API
 OPENMETEO_BASE_URL = "https://api.open-meteo.com/v1/forecast"
 
-# Weather condition codes (WMO)
-WMO_CODES = {
+# WMO code descriptions (condition comes from const.WMO_WEATHER_CODES)
+WMO_CODE_DESCRIPTIONS: dict[int, str] = {
     0: {"condition": "clear", "description": "Clear sky"},
     1: {"condition": "mainly_clear", "description": "Mainly clear"},
     2: {"condition": "partly_cloudy", "description": "Partly cloudy"},
@@ -56,9 +58,9 @@ WMO_CODES = {
     82: {"condition": "showers", "description": "Violent rain showers"},
     85: {"condition": "showers", "description": "Slight snow showers"},
     86: {"condition": "showers", "description": "Heavy snow showers"},
-    95: {"condition": "thunderstorm", "description": "Thunderstorm"},
-    96: {"condition": "thunderstorm", "description": "Thunderstorm with slight hail"},
-    99: {"condition": "thunderstorm", "description": "Thunderstorm with heavy hail"},
+    95: {"condition": "lightning", "description": "Thunderstorm"},
+    96: {"condition": "lightning", "description": "Thunderstorm with slight hail"},
+    99: {"condition": "lightning", "description": "Thunderstorm with heavy hail"},
 }
 
 
@@ -78,6 +80,10 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.longitude = longitude
         self._session = session
         self.weather_code = None
+
+        # Circuit breaker state
+        self._consecutive_failures = 0
+        self._circuit_open_until: datetime | None = None
 
         # Ensure minimum update interval
         if update_interval < MIN_UPDATE_INTERVAL:
@@ -99,16 +105,14 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get HA weather condition from WMO code."""
         if code is None:
             return "unknown"
-
-        weather_info = WMO_CODES.get(code, {"condition": "unknown"})
-        return weather_info["condition"]
+        return WMO_WEATHER_CODES.get(code, "unknown")
 
     def get_weather_description(self, code: int | None) -> str:
         """Get weather description from WMO code."""
         if code is None:
             return "Unknown"
 
-        weather_info = WMO_CODES.get(code, {"description": "Unknown"})
+        weather_info = WMO_CODE_DESCRIPTIONS.get(code, {"description": "Unknown"})
         return weather_info["description"]
 
     @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
@@ -261,37 +265,56 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API with caching."""
-        _LOGGER.debug("Fetching Open-Meteo data (lat=%s, lon=%s)", self.latitude, self.longitude)
+        # Circuit breaker check
+        if self._circuit_open_until and datetime.now(timezone.utc) < self._circuit_open_until:
+            raise UpdateFailed("Circuit breaker open — API temporarily unavailable")
 
-        # Get cache
-        cache = get_current_weather_cache()
-        cache_key = f"openmeteo:{self.latitude},{self.longitude}"
+        try:
+            _LOGGER.debug("Fetching Open-Meteo data (lat=%s, lon=%s)", self.latitude, self.longitude)
 
-        # Try cache first
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            _LOGGER.debug("Using cached Open-Meteo data")
-            return cached_data
+            # Get cache
+            cache = get_current_weather_cache()
+            cache_key = f"openmeteo:{self.latitude},{self.longitude}"
 
-        _LOGGER.debug("Cache miss, fetching fresh Open-Meteo data")
+            # Try cache first
+            cached_data = cache.get(cache_key)
+            if cached_data is not None:
+                _LOGGER.debug("Using cached Open-Meteo data")
+                return cached_data
 
-        data = await self._async_fetch_data()
+            _LOGGER.debug("Cache miss, fetching fresh Open-Meteo data")
 
-        if data is None:
-            _LOGGER.error("Open-Meteo data is None!")
-            raise UpdateFailed("Failed to fetch Open-Meteo data: data is None")
+            data = await self._async_fetch_data()
 
-        if not data:
-            _LOGGER.error("Open-Meteo data is empty!")
-            raise UpdateFailed("Failed to fetch Open-Meteo data: data is empty")
+            if data is None:
+                _LOGGER.error("Open-Meteo data is None!")
+                raise UpdateFailed("Failed to fetch Open-Meteo data: data is None")
 
-        _LOGGER.debug("Successfully fetched Open-Meteo data")
+            if not data:
+                _LOGGER.error("Open-Meteo data is empty!")
+                raise UpdateFailed("Failed to fetch Open-Meteo data: data is empty")
 
-        # Cache the result
-        cache.set(cache_key, data)
-        _LOGGER.debug("Cached Open-Meteo data (TTL: 600s)")
+            _LOGGER.debug("Successfully fetched Open-Meteo data")
 
-        return data
+            # Circuit breaker: reset on success
+            self._consecutive_failures = 0
+            self._circuit_open_until = None
+
+            # Cache the result
+            cache.set(cache_key, data)
+            _LOGGER.debug("Cached Open-Meteo data (TTL: 600s)")
+
+            return data
+
+        except UpdateFailed:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= 5:
+                self._circuit_open_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+                _LOGGER.warning(
+                    "Circuit breaker opened after %d consecutive failures",
+                    self._consecutive_failures,
+                )
+            raise
 
     async def async_close(self) -> None:
         """Close is handled centrally by the integration setup."""

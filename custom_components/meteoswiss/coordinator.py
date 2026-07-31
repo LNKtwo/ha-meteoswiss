@@ -5,7 +5,7 @@ import asyncio
 import csv
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
@@ -63,6 +63,10 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Initialize."""
         self.station_id = station_id.lower()  # STAC API uses lowercase
         self._session = session
+
+        # Circuit breaker state
+        self._consecutive_failures = 0
+        self._circuit_open_until: datetime | None = None
 
         # Ensure minimum update interval
         if update_interval < MIN_UPDATE_INTERVAL:
@@ -323,49 +327,68 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API with caching."""
-        _LOGGER.debug("Fetching data for station %s", self.station_id)
+        # Circuit breaker check
+        if self._circuit_open_until and datetime.now(timezone.utc) < self._circuit_open_until:
+            raise UpdateFailed("Circuit breaker open — API temporarily unavailable")
 
-        # Get cache
-        cache = get_current_weather_cache()
-        cache_key = f"station:{self.station_id}"
+        try:
+            _LOGGER.debug("Fetching data for station %s", self.station_id)
 
-        # Try cache first
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            _LOGGER.debug("Using cached data for station %s", self.station_id)
-            return cached_data
+            # Get cache
+            cache = get_current_weather_cache()
+            cache_key = f"station:{self.station_id}"
 
-        _LOGGER.debug("Cache miss, fetching fresh data for station %s", self.station_id)
+            # Try cache first
+            cached_data = cache.get(cache_key)
+            if cached_data is not None:
+                _LOGGER.debug("Using cached data for station %s", self.station_id)
+                return cached_data
 
-        # Get CSV URL
-        csv_url = await self._async_get_station_data_url()
+            _LOGGER.debug("Cache miss, fetching fresh data for station %s", self.station_id)
 
-        if csv_url is None:
-            _LOGGER.error("Failed to find station data URL")
-            raise UpdateFailed("Could not find station data URL")
+            # Get CSV URL
+            csv_url = await self._async_get_station_data_url()
 
-        _LOGGER.debug("Fetching CSV from: %s", csv_url)
+            if csv_url is None:
+                _LOGGER.error("Failed to find station data URL")
+                raise UpdateFailed("Could not find station data URL")
 
-        # Download and parse CSV
-        parsed_data = await self._async_download_and_parse_csv(csv_url)
+            _LOGGER.debug("Fetching CSV from: %s", csv_url)
 
-        if parsed_data is None:
-            _LOGGER.error("Parsed data is None!")
-            raise UpdateFailed("Failed to parse station data: parsed_data is None")
+            # Download and parse CSV
+            parsed_data = await self._async_download_and_parse_csv(csv_url)
 
-        if not parsed_data:
-            _LOGGER.error("Parsed data is empty!")
-            raise UpdateFailed("Failed to parse station data: parsed_data is empty")
+            if parsed_data is None:
+                _LOGGER.error("Parsed data is None!")
+                raise UpdateFailed("Failed to parse station data: parsed_data is None")
 
-        _LOGGER.debug("Successfully parsed data: %s", parsed_data)
+            if not parsed_data:
+                _LOGGER.error("Parsed data is empty!")
+                raise UpdateFailed("Failed to parse station data: parsed_data is empty")
 
-        self._last_update = datetime.now()
+            _LOGGER.debug("Successfully parsed data: %s", parsed_data)
 
-        # Cache result
-        cache.set(cache_key, parsed_data)
-        _LOGGER.debug("Cached data for station %s (TTL: 600s)", self.station_id)
+            self._last_update = datetime.now()
 
-        return parsed_data
+            # Circuit breaker: reset on success
+            self._consecutive_failures = 0
+            self._circuit_open_until = None
+
+            # Cache result
+            cache.set(cache_key, parsed_data)
+            _LOGGER.debug("Cached data for station %s (TTL: 600s)", self.station_id)
+
+            return parsed_data
+
+        except UpdateFailed:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= 5:
+                self._circuit_open_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+                _LOGGER.warning(
+                    "Circuit breaker opened after %d consecutive failures",
+                    self._consecutive_failures,
+                )
+            raise
 
     async def async_close(self) -> None:
         """Close is handled centrally by the integration setup."""

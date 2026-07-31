@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Final
 
+import aiohttp
+
 from aiohttp import TCPConnector
 
 DOMAIN: Final = "meteoswiss"
@@ -70,6 +72,20 @@ CONDITION_SUNNY = "sunny"
 
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
+
+# API timeout (30 seconds for all requests)
+DEFAULT_API_TIMEOUT: Final = aiohttp.ClientTimeout(total=30)
+
+# WMO weather code → HA condition mapping (used by weather.py, forecast_coordinator.py, openmeteo_coordinator.py)
+WMO_WEATHER_CODES: Final[dict[int, str]] = {
+    0: "sunny", 1: "sunny", 2: "partlycloudy", 3: "cloudy",
+    45: "fog", 48: "fog",
+    51: "rainy", 53: "rainy", 55: "rainy", 56: "rainy", 57: "rainy",
+    61: "rainy", 63: "rainy", 65: "rainy", 66: "rainy", 67: "rainy",
+    71: "snowy", 73: "snowy", 75: "snowy", 77: "snowy",
+    80: "rainy", 81: "rainy", 82: "rainy", 85: "snowy", 86: "snowy",
+    95: "lightning", 96: "lightning", 99: "lightning",
+}
 
 
 # Session utilities

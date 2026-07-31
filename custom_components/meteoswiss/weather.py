@@ -29,6 +29,7 @@ from .const import (
     SENSOR_TEMPERATURE,
     SENSOR_WIND_DIRECTION,
     SENSOR_WIND_SPEED,
+    WMO_WEATHER_CODES,
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .forecast_coordinator import MeteoSwissForecastCoordinator
@@ -59,39 +60,6 @@ async def async_setup_entry(
 
 class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], WeatherEntity):
     """Representation of meteoswiss weather data."""
-
-    # WMO weather code mapping for Open-Meteo
-    # https://open-meteo.com/en/docs
-    WEATHER_CODE_MAP: Final[dict[int, str]] = {
-        0: "sunny",
-        1: "sunny",
-        2: "partlycloudy",
-        3: "cloudy",
-        45: "fog",
-        48: "fog",
-        51: "rainy",
-        53: "rainy",
-        55: "rainy",
-        56: "rainy",
-        57: "rainy",
-        61: "rainy",
-        63: "rainy",
-        65: "rainy",
-        66: "rainy",
-        67: "rainy",
-        71: "snowy",
-        73: "snowy",
-        75: "snowy",
-        77: "snowy",
-        80: "rainy",
-        81: "rainy",
-        82: "rainy",
-        85: "snowy",
-        86: "snowy",
-        95: "lightning",
-        96: "lightning",
-        99: "lightning",
-    }
 
     # MeteoSwiss symbol/condition mapping (if available)
     METEOSWISS_CONDITION_MAP: Final[dict[str, str]] = {
@@ -188,7 +156,7 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
             _LOGGER.debug("Open-Meteo weather_code is None")
             return None
 
-        condition = self.WEATHER_CODE_MAP.get(weather_code, "partlycloudy")
+        condition = WMO_WEATHER_CODES.get(weather_code, "partlycloudy")
         _LOGGER.debug("Mapped Open-Meteo code %s → condition: %s", weather_code, condition)
         return condition
 

@@ -14,7 +14,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from .alerts import MeteoSwissAlertsAPI, WeatherAlert
 from .const import (
@@ -73,7 +73,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class MeteoSwissAlertsBinarySensor(BinarySensorEntity):
+class MeteoSwissAlertsBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Representation of a MeteoSwiss weather alert binary sensor."""
 
     def __init__(
@@ -84,7 +84,7 @@ class MeteoSwissAlertsBinarySensor(BinarySensorEntity):
         postal_code: str,
     ) -> None:
         """Initialize binary sensor."""
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
@@ -148,7 +148,6 @@ class MeteoSwissAlertsBinarySensor(BinarySensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from coordinator."""
         self.async_write_ha_state()
-        super()._handle_coordinator_update()
 
 
 class MeteoSwissAlertsCoordinator(DataUpdateCoordinator[list[WeatherAlert]]):

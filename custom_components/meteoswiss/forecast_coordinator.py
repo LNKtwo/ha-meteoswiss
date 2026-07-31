@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cache import get_forecast_cache
+from .const import WMO_WEATHER_CODES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +40,10 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         self._post_code = post_code
         self._session = session
 
+        # Circuit breaker state
+        self._consecutive_failures = 0
+        self._circuit_open_until: datetime | None = None
+
         if latitude is None or longitude is None:
             _LOGGER.warning(
                 "No coordinates provided for Open-Meteo forecast. "
@@ -57,36 +62,10 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         if weather_code is None:
             return "partlycloudy"
 
-        # WMO weather code mapping
-        # https://open-meteo.com/en/docs
-        if weather_code == 0:
-            return "clear-night" if is_night else "sunny"
-        elif weather_code == 1:
-            return "clear-night" if is_night else "sunny"
-        elif weather_code == 2:
-            return "partlycloudy"
-        elif weather_code == 3:
-            return "cloudy"
-        elif weather_code in [45, 48]:
-            return "fog"
-        elif weather_code in [51, 53, 55]:
-            return "rainy"
-        elif weather_code in [56, 57]:
-            return "rainy"
-        elif weather_code in [61, 63, 65]:
-            return "rainy"
-        elif weather_code in [66, 67]:
-            return "rainy"
-        elif weather_code in [71, 73, 75, 77]:
-            return "snowy"
-        elif weather_code in [80, 81, 82]:
-            return "rainy"
-        elif weather_code in [85, 86]:
-            return "snowy"
-        elif weather_code in [95, 96, 99]:
-            return "lightning"
-        else:
-            return "partlycloudy"
+        condition = WMO_WEATHER_CODES.get(weather_code, "partlycloudy")
+        if condition == "sunny" and is_night:
+            return "clear-night"
+        return condition
 
     async def _fetch_open_meteo_forecast(self) -> list[dict[str, Any]]:
         """Fetch forecast from Open-Meteo API with retries."""
@@ -187,6 +166,10 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Fetch forecast data from Open-Meteo API with caching."""
+        # Circuit breaker check
+        if self._circuit_open_until and datetime.now(timezone.utc) < self._circuit_open_until:
+            raise UpdateFailed("Circuit breaker open — API temporarily unavailable")
+
         _LOGGER.debug("Fetching forecast from Open-Meteo API")
 
         # Get cache
@@ -205,13 +188,21 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             # Cache the result
             cache.set(cache_key, data)
 
+            # Circuit breaker: reset on success
+            self._consecutive_failures = 0
+            self._circuit_open_until = None
+
             _LOGGER.debug("Successfully updated forecast from Open-Meteo")
             return data
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Open-Meteo API request failed: %s", err)
-            raise UpdateFailed(f"Open-Meteo API request failed: {err}")
-        except Exception as err:
+        except (aiohttp.ClientError, Exception) as err:
             _LOGGER.error("Error fetching Open-Meteo forecast: %s", err)
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= 5:
+                self._circuit_open_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+                _LOGGER.warning(
+                    "Circuit breaker opened after %d consecutive failures",
+                    self._consecutive_failures,
+                )
             raise UpdateFailed(f"Failed to fetch Open-Meteo forecast: {err}")
 
     @property

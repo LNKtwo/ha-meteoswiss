@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from .alerts import MeteoSwissAlertsAPI
 from .const import (
+    DEFAULT_API_TIMEOUT,
     _create_ssl_connector,
     CONF_DATA_SOURCE,
     CONF_LATITUDE,
@@ -94,7 +95,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {}
 
     # Create a single shared aiohttp session for all coordinators
-    shared_session = aiohttp.ClientSession(connector=_create_ssl_connector())
+    shared_session = aiohttp.ClientSession(
+        connector=_create_ssl_connector(),
+        timeout=DEFAULT_API_TIMEOUT,
+    )
 
     # Create coordinator based on data source
     update_interval = entry.options.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, 600))
