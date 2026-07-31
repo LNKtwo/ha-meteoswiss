@@ -80,6 +80,33 @@
       },
       "uv_index": {
         "name": "UV Index"
+      },
+      "snow_depth": {
+        "name": "Snow Depth"
+      },
+      "foehn_index": {
+        "name": "Foehn Index"
+      },
+      "soil_temperature_5cm": {
+        "name": "Soil Temperature 5 cm"
+      },
+      "soil_temperature_10cm": {
+        "name": "Soil Temperature 10 cm"
+      },
+      "soil_temperature_20cm": {
+        "name": "Soil Temperature 20 cm"
+      },
+      "pm25": {
+        "name": "PM2.5"
+      },
+      "pm10": {
+        "name": "PM10"
+      },
+      "nitrogen_dioxide": {
+        "name": "Nitrogen Dioxide"
+      },
+      "ozone": {
+        "name": "Ozone"
       }
     }
   }

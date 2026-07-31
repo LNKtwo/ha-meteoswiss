@@ -1,4 +1,4 @@
 """Version information for MeteoSwiss integration."""
 from __future__ import annotations
 
-__version__ = "6.1.2"
+__version__ = "6.2.0"

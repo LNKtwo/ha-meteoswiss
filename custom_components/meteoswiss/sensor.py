@@ -21,6 +21,14 @@ from homeassistant.const import (
 )
 
 try:
+    from homeassistant.components.sensor import SensorDeviceClass as _SDC
+    _CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = getattr(
+        _SDC, "CONCENTRATION_MICROGRAMS_PER_CUBIC_METER", "µg/m³"
+    )
+except ImportError:
+    _CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = "µg/m³"
+
+try:
     from homeassistant.const import UnitOfIrradiance
 except ImportError:
     UnitOfIrradiance = type("UnitOfIrradiance", (), {"WATTS_PER_SQUARE_METER": "W/m²"})
@@ -33,7 +41,7 @@ except ImportError:
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from .cache import get_all_cache_stats
 from .const import (
@@ -43,10 +51,19 @@ from .const import (
     DATA_SOURCE_OPENMETEO,
     DOMAIN,
     SENSOR_DEW_POINT,
+    SENSOR_FOEHN_INDEX,
     SENSOR_GLOBAL_RADIATION,
     SENSOR_HUMIDITY,
+    SENSOR_NITROGEN_DIOXIDE,
+    SENSOR_OZONE,
+    SENSOR_PM10,
+    SENSOR_PM25,
     SENSOR_PRECIPITATION,
     SENSOR_PRESSURE,
+    SENSOR_SNOW_DEPTH,
+    SENSOR_SOIL_TEMP_10CM,
+    SENSOR_SOIL_TEMP_20CM,
+    SENSOR_SOIL_TEMP_5CM,
     SENSOR_SUNSHINE,
     SENSOR_TEMPERATURE,
     SENSOR_UV_INDEX,
@@ -148,6 +165,46 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
         native_unit_of_measurement="UV Index",
         value_key=SENSOR_UV_INDEX,
     ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_SNOW_DEPTH,
+        translation_key="snow_depth",
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.CENTIMETERS,
+        value_key=SENSOR_SNOW_DEPTH,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_FOEHN_INDEX,
+        translation_key="foehn_index",
+        device_class=None,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="Code",
+        value_key=SENSOR_FOEHN_INDEX,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_SOIL_TEMP_5CM,
+        translation_key="soil_temperature_5cm",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_key=SENSOR_SOIL_TEMP_5CM,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_SOIL_TEMP_10CM,
+        translation_key="soil_temperature_10cm",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_key=SENSOR_SOIL_TEMP_10CM,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_SOIL_TEMP_20CM,
+        translation_key="soil_temperature_20cm",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_key=SENSOR_SOIL_TEMP_20CM,
+    ),
 )
 
 
@@ -192,6 +249,14 @@ async def async_setup_entry(
                 MeteoSwissPollenSensor(pollen_coordinator, entry, description, station_name)
             )
         _LOGGER.debug("Added %d pollen sensors", len(POLLEN_SENSOR_DESCRIPTIONS))
+
+    # Add air quality sensors (from pollen/AQ coordinator)
+    if pollen_coordinator:
+        entities.extend(
+            MeteoSwissAirQualitySensor(pollen_coordinator, entry, description, station_name)
+            for description in AIR_QUALITY_SENSOR_DESCRIPTIONS
+        )
+        _LOGGER.debug("Added %d air quality sensors", len(AIR_QUALITY_SENSOR_DESCRIPTIONS))
 
     async_add_entities(entities)
 
@@ -310,3 +375,78 @@ class MeteoSwissCacheStatsSensor(SensorEntity):
             "forecast": stats["forecast"],
             "stations": stats["stations"],
         }
+
+
+# --------------------------------------------------------------------------- #
+# Air Quality Sensors (from Open-Meteo Air Quality API)                       #
+# --------------------------------------------------------------------------- #
+
+AIR_QUALITY_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_PM25,
+        translation_key="pm25",
+        device_class=SensorDeviceClass.PM25,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=_CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        value_key=SENSOR_PM25,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_PM10,
+        translation_key="pm10",
+        device_class=SensorDeviceClass.PM10,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=_CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        value_key=SENSOR_PM10,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_NITROGEN_DIOXIDE,
+        translation_key="nitrogen_dioxide",
+        device_class=SensorDeviceClass.NITROGEN_DIOXIDE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=_CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        value_key=SENSOR_NITROGEN_DIOXIDE,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_OZONE,
+        translation_key="ozone",
+        device_class=SensorDeviceClass.OZONE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=_CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        value_key=SENSOR_OZONE,
+    ),
+)
+
+
+class MeteoSwissAirQualitySensor(CoordinatorEntity, SensorEntity):
+    """Representation of a MeteoSwiss air quality sensor."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: MeteoSwissSensorEntityDescription,
+        station_name: str,
+    ) -> None:
+        """Initialize air quality sensor."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"pollen_{entry.entry_id}")},
+            name=f"MeteoSwiss Air Quality - {station_name}",
+            manufacturer="MeteoSwiss",
+            model="Open-Meteo Air Quality",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = "Source: Open-Meteo Air Quality API"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from coordinator."""
+        if self.coordinator.data:
+            value_key = self.entity_description.value_key
+            value = self.coordinator.data.get(value_key)
+            self._attr_native_value = value
+        else:
+            self._attr_native_value = None
+        super()._handle_coordinator_update()

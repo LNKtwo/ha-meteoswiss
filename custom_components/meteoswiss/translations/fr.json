@@ -1,0 +1,113 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration de l'intégration météo",
+        "description": "Sélectionnez votre source de données météo préférée.",
+        "data": {
+          "data_source": "Source de données",
+          "update_interval": "Intervalle de mise à jour (secondes)"
+        }
+      },
+      "meteoswiss": {
+        "title": "Configuration MeteoSwiss STAC",
+        "description": "Entrez votre code postal pour trouver les stations météo suisses à proximité.",
+        "data": {
+          "postal_code": "Code postal",
+          "station_id": "Station météo"
+        }
+      },
+      "openmeteo": {
+        "title": "Configuration Open-Meteo",
+        "description": "Entrez vos coordonnées pour l'API Open-Meteo.",
+        "data": {
+          "postal_code": "Code postal (facultatif)",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter à l'API météo",
+      "station_not_found": "Station introuvable",
+      "invalid_location": "Coordonnées invalides"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paramètres MeteoSwiss",
+        "description": "Ajuster l'intervalle de mise à jour et la source de données.",
+        "data": {
+          "update_interval": "Intervalle de mise à jour (secondes, min. 600)",
+          "data_source": "Source de données"
+        }
+      }
+    }
+  },
+  "title": "MeteoSwiss",
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Température"
+      },
+      "humidity": {
+        "name": "Humidité"
+      },
+      "wind_speed": {
+        "name": "Vitesse du vent"
+      },
+      "wind_direction": {
+        "name": "Direction du vent"
+      },
+      "precipitation": {
+        "name": "Précipitations"
+      },
+      "pressure": {
+        "name": "Pression"
+      },
+      "wind_gust": {
+        "name": "Rafale de vent"
+      },
+      "dew_point": {
+        "name": "Point de rosée"
+      },
+      "sunshine_duration": {
+        "name": "Durée d'ensoleillement"
+      },
+      "global_radiation": {
+        "name": "Rayonnement global"
+      },
+      "uv_index": {
+        "name": "Indice UV"
+      },
+      "snow_depth": {
+        "name": "Hauteur de neige"
+      },
+      "foehn_index": {
+        "name": "Indice de foehn"
+      },
+      "soil_temperature_5cm": {
+        "name": "Température du sol 5 cm"
+      },
+      "soil_temperature_10cm": {
+        "name": "Température du sol 10 cm"
+      },
+      "soil_temperature_20cm": {
+        "name": "Température du sol 20 cm"
+      },
+      "pm25": {
+        "name": "PM2.5"
+      },
+      "pm10": {
+        "name": "PM10"
+      },
+      "nitrogen_dioxide": {
+        "name": "Dioxyde d'azote"
+      },
+      "ozone": {
+        "name": "Ozone"
+      }
+    }
+  }
+}

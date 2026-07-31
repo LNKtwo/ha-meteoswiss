@@ -21,10 +21,15 @@ from .const import (
     GRANULARITY_10MIN,
     MIN_UPDATE_INTERVAL,
     SENSOR_DEW_POINT,
+    SENSOR_FOEHN_INDEX,
     SENSOR_GLOBAL_RADIATION,
     SENSOR_HUMIDITY,
     SENSOR_PRECIPITATION,
     SENSOR_PRESSURE,
+    SENSOR_SNOW_DEPTH,
+    SENSOR_SOIL_TEMP_10CM,
+    SENSOR_SOIL_TEMP_20CM,
+    SENSOR_SOIL_TEMP_5CM,
     SENSOR_SUNSHINE,
     SENSOR_TEMPERATURE,
     SENSOR_WIND_DIRECTION,
@@ -48,6 +53,12 @@ PARAM_GUST_1S = "fu3010z1"     # Böenspitze (Sekundenböe); Maximum (km/h)
 PARAM_GUST_3S = "fu3010z3"     # Böenspitze (3-Sekundenböe); Maximum (km/h)
 PARAM_SUNSHINE = "sre000z0"    # Sonnenscheindauer; Zehnminutensumme (min)
 PARAM_GLOBAL_RAD = "gre000z0"  # Globalstrahlung; Zehnminutenmittel (W/m²)
+PARAM_SNOW_DEPTH = "htoauts0"  # Gesamtschneehöhe; Momentanwert (cm)
+PARAM_DEW_POINT = "tde200s0"  # Taupunkt 2m über Boden; Momentanwert (°C)
+PARAM_FOEHN_INDEX = "wcc006s0"  # Föhnindex; Momentanwert (Code)
+PARAM_SOIL_TEMP_5CM = "tso005s0"  # Bodentemperatur 5 cm Tiefe; Momentanwert (°C)
+PARAM_SOIL_TEMP_10CM = "tso010s0"  # Bodentemperatur 10 cm Tiefe; Momentanwert (°C)
+PARAM_SOIL_TEMP_20CM = "tso020s0"  # Bodentemperatur 20 cm Tiefe; Momentanwert (°C)
 
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -202,6 +213,11 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 SENSOR_DEW_POINT: None,
                 SENSOR_SUNSHINE: None,
                 SENSOR_GLOBAL_RADIATION: None,
+                SENSOR_SNOW_DEPTH: None,
+                SENSOR_FOEHN_INDEX: None,
+                SENSOR_SOIL_TEMP_5CM: None,
+                SENSOR_SOIL_TEMP_10CM: None,
+                SENSOR_SOIL_TEMP_20CM: None,
                 "last_update": None,
             }
 
@@ -283,19 +299,62 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except (ValueError, TypeError) as e:
                     _LOGGER.debug("Could not parse global radiation '%s': %s", rad_value, e)
 
-            # Calculate dew point from temperature and humidity
-            temp = result.get(SENSOR_TEMPERATURE)
-            hum = result.get(SENSOR_HUMIDITY)
-            if temp is not None and hum is not None:
+            # Parse snow depth (cm)
+            snow_value = row.get(PARAM_SNOW_DEPTH)
+            if snow_value and snow_value.strip():
                 try:
-                    # Magnus formula
-                    a = 17.625
-                    b = 243.04
-                    alpha = ((a * temp) / (b + temp)) + math.log(max(hum, 1.0) / 100.0)
-                    dew = (b * alpha) / (a - alpha)
-                    result[SENSOR_DEW_POINT] = round(dew, 1)
-                except Exception:
-                    pass
+                    result[SENSOR_SNOW_DEPTH] = float(snow_value)
+                    _LOGGER.debug("Parsed snow depth: %s cm", result[SENSOR_SNOW_DEPTH])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse snow depth '%s': %s", snow_value, e)
+
+            # Parse foehn index (code)
+            foehn_value = row.get(PARAM_FOEHN_INDEX)
+            if foehn_value and foehn_value.strip():
+                try:
+                    result[SENSOR_FOEHN_INDEX] = int(float(foehn_value))
+                    _LOGGER.debug("Parsed foehn index: %s", result[SENSOR_FOEHN_INDEX])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse foehn index '%s': %s", foehn_value, e)
+
+            # Parse soil temperatures (°C)
+            for param_key, sensor_key in (
+                (PARAM_SOIL_TEMP_5CM, SENSOR_SOIL_TEMP_5CM),
+                (PARAM_SOIL_TEMP_10CM, SENSOR_SOIL_TEMP_10CM),
+                (PARAM_SOIL_TEMP_20CM, SENSOR_SOIL_TEMP_20CM),
+            ):
+                soil_value = row.get(param_key)
+                if soil_value and soil_value.strip():
+                    try:
+                        result[sensor_key] = float(soil_value)
+                        _LOGGER.debug("Parsed %s: %s °C", sensor_key, result[sensor_key])
+                    except (ValueError, TypeError) as e:
+                        _LOGGER.debug("Could not parse %s '%s': %s", sensor_key, soil_value, e)
+
+            # Dew point: use measured value if available, otherwise calculate via Magnus formula
+            dew_measured = row.get(PARAM_DEW_POINT)
+            if dew_measured and dew_measured.strip():
+                try:
+                    result[SENSOR_DEW_POINT] = round(float(dew_measured), 1)
+                    _LOGGER.debug("Using measured dew point: %s °C", result[SENSOR_DEW_POINT])
+                except (ValueError, TypeError) as e:
+                    _LOGGER.debug("Could not parse measured dew point '%s': %s", dew_measured, e)
+
+            # Fallback: calculate dew point from temperature and humidity using Magnus formula
+            if result[SENSOR_DEW_POINT] is None:
+                temp = result.get(SENSOR_TEMPERATURE)
+                hum = result.get(SENSOR_HUMIDITY)
+                if temp is not None and hum is not None:
+                    try:
+                        # Magnus formula
+                        a = 17.625
+                        b = 243.04
+                        alpha = ((a * temp) / (b + temp)) + math.log(max(hum, 1.0) / 100.0)
+                        dew = (b * alpha) / (a - alpha)
+                        result[SENSOR_DEW_POINT] = round(dew, 1)
+                        _LOGGER.debug("Calculated dew point (Magnus): %s °C", result[SENSOR_DEW_POINT])
+                    except Exception:
+                        pass
 
             # Parse timestamp
             timestamp_value = row.get("reference_timestamp")

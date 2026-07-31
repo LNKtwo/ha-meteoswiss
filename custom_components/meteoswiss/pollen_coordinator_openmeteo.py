@@ -26,6 +26,12 @@ POLLEN_GRASS = "grass_pollen"
 POLLEN_MUGWORT = "mugwort_pollen"
 POLLEN_RAGWEED = "ragweed_pollen"
 
+# Air quality parameters (Open-Meteo AQ API)
+AQ_PM25 = "pm2_5"
+AQ_PM10 = "pm10"
+AQ_NO2 = "nitrogen_dioxide"
+AQ_O3 = "ozone"
+
 # Pollen types list
 POLLEN_TYPES = [
     POLLEN_ALDER,
@@ -33,6 +39,14 @@ POLLEN_TYPES = [
     POLLEN_GRASS,
     POLLEN_MUGWORT,
     POLLEN_RAGWEED,
+]
+
+# Air quality parameter list
+AQ_PARAMETERS = [
+    AQ_PM25,
+    AQ_PM10,
+    AQ_NO2,
+    AQ_O3,
 ]
 
 
@@ -74,11 +88,12 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._session is None:
             raise RuntimeError("No aiohttp session provided to OpenMeteoPollenCoordinator")
 
-        # Build API URL with pollen variables
+        # Build API URL with pollen + air quality variables
+        hourly_vars = POLLEN_TYPES + AQ_PARAMETERS
         params = {
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "hourly": ",".join(POLLEN_TYPES),
+            "hourly": ",".join(hourly_vars),
             "forecast_days": 5,
             "timezone": "Europe/Zurich",
         }
@@ -118,6 +133,11 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 POLLEN_GRASS: None,
                 POLLEN_MUGWORT: None,
                 POLLEN_RAGWEED: None,
+                # Air quality (current values, flat floats)
+                "pm25": None,
+                "pm10": None,
+                "nitrogen_dioxide": None,
+                "ozone": None,
                 "last_update": None,
             }
 
@@ -148,13 +168,29 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result["last_update"] = hourly_time[0]
                 _LOGGER.debug("Pollen timestamp: %s", result["last_update"])
 
+            # Parse air quality parameters (current = first available value)
+            for aq_param in AQ_PARAMETERS:
+                aq_values = hourly.get(aq_param, [])
+                if aq_values and len(aq_values) > 0:
+                    # Find first non-null value
+                    for v in aq_values:
+                        if v is not None:
+                            # Map API parameter names to sensor keys
+                            sensor_key = "pm25" if aq_param == AQ_PM25 else aq_param
+                            result[sensor_key] = round(float(v), 1)
+                            break
+                    _LOGGER.debug("Parsed AQ %s: %s", aq_param, result.get("pm25" if aq_param == AQ_PM25 else aq_param))
+
             # Check if we have any data
-            has_data = any(
+            has_pollen = any(
                 result.get(pt) is not None for pt in POLLEN_TYPES
             )
+            has_aq = any(
+                result.get(k) is not None for k in ("pm25", "pm10", "nitrogen_dioxide", "ozone")
+            )
 
-            if not has_data:
-                _LOGGER.warning("No pollen data available (possibly outside pollen season)")
+            if not has_pollen and not has_aq:
+                _LOGGER.warning("No pollen or air quality data available (possibly outside pollen season)")
                 return {}
 
             _LOGGER.debug("✅ Successfully parsed pollen data")
