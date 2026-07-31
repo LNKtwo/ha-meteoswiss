@@ -1,74 +1,115 @@
 # MeteoSwiss Integration for Home Assistant
 
-Swiss weather data directly from MeteoSwiss — current conditions, forecasts, alerts, and pollen data.
+[![hacs](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/LNKtwo/ha-meteoswiss)
+[![version](https://img.shields.io/badge/version-6.0.1-blue.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Swiss weather data directly from **MeteoSwiss** — current conditions, forecasts, official weather alerts, and pollen data for Home Assistant.
 
 ## Features
 
-- **Current Weather** — Temperature, humidity, wind, pressure, precipitation, sunshine, global radiation, UV index
-- **Weather Forecast** — Hourly and daily forecasts via Open-Meteo
-- **Weather Alerts** — Official MeteoSwiss warnings (wind, rain, thunderstorm, snow, flood, forest fire)
-- **Pollen Data** — Pollen levels via Open-Meteo Air Quality API
-- **Smart Caching** — Intelligent TTL-based caching reduces API calls
-- **Automatic Retry** — Exponential backoff on transient failures
+| Feature | Source | Description |
+|---|---|---|
+| 🌡️ **Current Weather** | MeteoSwiss SwissMetNet | Temperature, humidity, wind, pressure, precipitation, sunshine, global radiation |
+| ⛅ **Weather Forecast** | Open-Meteo | Hourly and daily forecasts with condition mapping |
+| ⚠️ **Weather Alerts** | MeteoSwiss | Official warnings: wind, rain, thunderstorm, snow, flood, forest fire |
+| 🌸 **Pollen Data** | Open-Meteo AQI | Pollen levels for alder, birch, grass, olive, mugwort, and ragweed |
+| 🔁 **Smart Caching** | Internal | TTL-based caching reduces API calls |
+| 🛡️ **Auto-Retry** | Internal | Exponential backoff on transient failures |
 
 ## Installation
 
 ### HACS (recommended)
 
-1. Add this repo as a Custom Repository in HACS
-2. Search for "MeteoSwiss"
-3. Install
+1. Go to **HACS** → **Integrations** → ⋮ → **Custom Repositories**
+2. Add `https://github.com/LNKtwo/ha-meteoswiss` as category **Integration**
+3. Search for **MeteoSwiss** → **Install**
 4. Restart Home Assistant
-5. Add the integration via Settings → Devices → Add Integration → MeteoSwiss
+5. **Settings** → **Devices** → **Add Integration** → search **MeteoSwiss**
 
 ### Manual
 
-1. Copy `custom_components/meteoswiss/` to your `custom_components/` directory
+1. Download and copy the `custom_components/meteoswiss/` folder to your HA `custom_components/` directory
 2. Restart Home Assistant
-3. Add via Settings → Devices → Add Integration → MeteoSwiss
+3. **Settings** → **Devices** → **Add Integration** → search **MeteoSwiss**
 
 ## Configuration
 
-| Field | Description | Required |
+The integration is configured via Home Assistant's UI:
+
+| Field | Description | Required | Default |
+|---|---|---|---|
+| **Station** | MeteoSwiss station code (e.g. `LUC` for Lucerne) | Yes | — |
+| **Postal Code** | Swiss postal code for weather alerts (e.g. `6048`) | Yes | — |
+| **Data Source** | `meteoswiss` (SwissMetNet) or `openmeteo` (Open-Meteo) | Yes | `meteoswiss` |
+| **Update Interval** | Refresh interval in seconds | No | `600` (10 min) |
+
+### Finding Your Station
+
+SwissMetNet stations: [MeteoSwiss Station Map](https://www.meteoswiss.admin.ch/weather/measurement-values.html)
+
+Common stations:
+
+| Code | Location |
+|---|---|
+| `LUC` | Lucerne |
+| `ZRH` | Zurich |
+| `BER` | Bern |
+| `BSL` | Basel |
+| `GVE` | Geneva |
+| `LUG` | Lugano |
+
+## Sensors
+
+### Current Weather
+
+| Sensor | Unit | Device Class |
 |---|---|---|
-| Station | MeteoSwiss weather station (e.g. LUC, GUT) | Yes (MeteoSwiss source) |
-| Postal Code | Swiss postal code for alerts (e.g. 6048) | Yes |
-| Data Source | `meteoswiss` (SwissMetNet) or `openmeteo` (Open-Meteo) | Yes |
-| Latitude/Longitude | Used for Open-Meteo source | No (auto from station) |
-| Update Interval | Refresh rate in seconds (min: 600) | No (default: 600) |
+| Temperature | °C | Temperature |
+| Humidity | % | Humidity |
+| Wind Speed | km/h | Wind Speed |
+| Wind Direction | ° | — |
+| Wind Gust | km/h | Wind Speed |
+| Pressure | hPa | Pressure |
+| Precipitation | mm | Precipitation |
+| Dew Point | °C | Temperature |
+| Sunshine Duration | min | Duration |
+| Global Radiation | W/m² | Irradiance |
+| UV Index | UV Index | — |
+
+### Weather Alerts
+
+Binary sensors for active weather warnings with severity levels and alert details as attributes.
+
+### Pollen
+
+Pollen concentration sensors for major allergen types.
+
+## Requirements
+
+- Home Assistant **2024.7** or newer
+- Internet connection (cloud polling)
 
 ## Data Sources
 
 ### MeteoSwiss (default)
-- Current conditions from SwissMetNet stations via `data.geo.admin.ch`
-- 10-minute granularity measurements
-- Official weather alerts via MeteoSwiss App API
+- **Current conditions** from SwissMetNet stations via `data.geo.admin.ch` STAC API
+- **Weather alerts** via MeteoSwiss App API
+- 10-minute measurement granularity
 
 ### Open-Meteo (alternative)
 - Current weather and forecasts via Open-Meteo API
-- Useful if you're outside Switzerland or need different data
+- Useful outside Switzerland or for different data needs
 
-## Sensors
+## Support
 
-| Sensor | Unit | Source |
-|---|---|---|
-| Temperature | °C | MeteoSwiss |
-| Humidity | % | MeteoSwiss |
-| Wind Speed | km/h | MeteoSwiss |
-| Wind Direction | ° | MeteoSwiss |
-| Wind Gust | km/h | MeteoSwiss |
-| Pressure | hPa | MeteoSwiss |
-| Precipitation | mm | MeteoSwiss |
-| Dew Point | °C | Calculated |
-| Sunshine Duration | min | MeteoSwiss |
-| Global Radiation | W/m² | MeteoSwiss |
-| UV Index | UV | Open-Meteo |
-
-## Requirements
-
-- Home Assistant 2024.1 or newer
-- Internet connection (cloud polling)
+- **Issues:** [GitHub Issues](https://github.com/LNKtwo/ha-meteoswiss/issues)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+*Data source: [MeteoSwiss](https://www.meteoswiss.admin.ch/) · Forecast: [Open-Meteo](https://open-meteo.com/)*
