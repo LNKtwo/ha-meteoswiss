@@ -49,90 +49,43 @@
   "title": "MeteoSwiss",
   "entity": {
     "sensor": {
-      "temperature": {
-        "name": "Temperature"
-      },
-      "humidity": {
-        "name": "Humidity"
-      },
-      "wind_speed": {
-        "name": "Wind Speed"
-      },
-      "wind_direction": {
-        "name": "Wind Direction"
-      },
-      "precipitation": {
-        "name": "Precipitation"
-      },
-      "pressure": {
-        "name": "Pressure"
-      },
-      "wind_gust": {
-        "name": "Wind Gust"
-      },
-      "dew_point": {
-        "name": "Dew Point"
-      },
-      "sunshine_duration": {
-        "name": "Sunshine Duration"
-      },
-      "global_radiation": {
-        "name": "Global Radiation"
-      },
-      "uv_index": {
-        "name": "UV Index"
-      },
-      "snow_depth": {
-        "name": "Snow Depth"
-      },
-      "foehn_index": {
-        "name": "Foehn Index"
-      },
-      "soil_temperature_5cm": {
-        "name": "Soil Temperature 5 cm"
-      },
-      "soil_temperature_10cm": {
-        "name": "Soil Temperature 10 cm"
-      },
-      "soil_temperature_20cm": {
-        "name": "Soil Temperature 20 cm"
-      },
-      "pm25": {
-        "name": "PM2.5"
-      },
-      "pm10": {
-        "name": "PM10"
-      },
-      "nitrogen_dioxide": {
-        "name": "Nitrogen Dioxide"
-      },
-      "ozone": {
-        "name": "Ozone"
-      },
-      "heating_degree_days": {
-        "name": "Heating Degree Days"
-      },
-      "season_heating_degree_days": {
-        "name": "Season Heating Degree Days"
-      },
-      "ms_pollen_birch": {
-        "name": "Birch Pollen (Measured)"
-      },
-      "ms_pollen_alder": {
-        "name": "Alder Pollen (Measured)"
-      },
-      "ms_pollen_hazel": {
-        "name": "Hazel Pollen (Measured)"
-      },
-      "ms_pollen_grass": {
-        "name": "Grass Pollen (Measured)"
-      },
-      "ms_pollen_beech": {
-        "name": "Beech Pollen (Measured)"
-      },
-      "ms_pollen_ash": {
-        "name": "Ash Pollen (Measured)"
-      }
+      "temperature": { "name": "Temperature" },
+      "humidity": { "name": "Humidity" },
+      "wind_speed": { "name": "Wind Speed" },
+      "wind_direction": { "name": "Wind Direction" },
+      "precipitation": { "name": "Precipitation" },
+      "pressure": { "name": "Pressure" },
+      "wind_gust": { "name": "Wind Gust" },
+      "dew_point": { "name": "Dew Point" },
+      "sunshine_duration": { "name": "Sunshine Duration" },
+      "global_radiation": { "name": "Global Radiation" },
+      "uv_index": { "name": "UV Index" },
+      "snow_depth": { "name": "Snow Depth" },
+      "foehn_index": { "name": "Foehn Index" },
+      "soil_temperature_5cm": { "name": "Soil Temperature 5 cm" },
+      "soil_temperature_10cm": { "name": "Soil Temperature 10 cm" },
+      "soil_temperature_20cm": { "name": "Soil Temperature 20 cm" },
+      "pm25": { "name": "PM2.5" },
+      "pm10": { "name": "PM10" },
+      "nitrogen_dioxide": { "name": "Nitrogen Dioxide" },
+      "ozone": { "name": "Ozone" },
+      "heating_degree_days": { "name": "Heating Degree Days" },
+      "season_heating_degree_days": { "name": "Season Heating Degree Days" },
+      "pollen_birch": { "name": "Birch Pollen" },
+      "pollen_alder": { "name": "Alder Pollen" },
+      "pollen_grass": { "name": "Grass Pollen" },
+      "pollen_mugwort": { "name": "Mugwort Pollen" },
+      "pollen_ambrosia": { "name": "Ragweed Pollen" },
+      "ms_pollen_birch": { "name": "Birch Pollen (Measured)" },
+      "ms_pollen_alder": { "name": "Alder Pollen (Measured)" },
+      "ms_pollen_hazel": { "name": "Hazel Pollen (Measured)" },
+      "ms_pollen_grass": { "name": "Grass Pollen (Measured)" },
+      "ms_pollen_beech": { "name": "Beech Pollen (Measured)" },
+      "ms_pollen_ash": { "name": "Ash Pollen (Measured)" }
+    },
+    "binary_sensor": {
+      "any_alert": { "name": "Weather Alert" },
+      "critical_alert": { "name": "Critical Weather Alert" }
     }
   }
 }

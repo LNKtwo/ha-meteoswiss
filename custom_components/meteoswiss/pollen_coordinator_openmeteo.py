@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cache import get_current_weather_cache
-from .const import CONF_POSTAL_CODE, DOMAIN, MIN_UPDATE_INTERVAL
+from .const import DOMAIN, MIN_UPDATE_INTERVAL
 from .retry import async_retry_with_backoff
 
 _LOGGER = logging.getLogger(__name__)
@@ -119,9 +119,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Open-Meteo AQ API request failed: %s", err)
             return None
         except Exception as err:
-            _LOGGER.error("Error fetching Open-Meteo AQ data: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error fetching Open-Meteo AQ data: %s", err)
             return None
 
     def _parse_response(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -198,9 +196,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return result
 
         except Exception as err:
-            _LOGGER.error("Error parsing Open-Meteo AQ response: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error parsing Open-Meteo AQ response: %s", err)
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:

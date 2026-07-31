@@ -139,7 +139,7 @@ class MeteoSwissPollenSensor(SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, PollenMeasurement]],
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
         entry: ConfigEntry,
         description: MeteoSwissPollenSensorEntityDescription,
         station_name: str,

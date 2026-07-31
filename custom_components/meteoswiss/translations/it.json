@@ -49,90 +49,43 @@
   "title": "MeteoSwiss",
   "entity": {
     "sensor": {
-      "temperature": {
-        "name": "Temperatura"
-      },
-      "humidity": {
-        "name": "Umidità"
-      },
-      "wind_speed": {
-        "name": "Velocità del vento"
-      },
-      "wind_direction": {
-        "name": "Direzione del vento"
-      },
-      "precipitation": {
-        "name": "Precipitazioni"
-      },
-      "pressure": {
-        "name": "Pressione"
-      },
-      "wind_gust": {
-        "name": "Raffica di vento"
-      },
-      "dew_point": {
-        "name": "Punto di rugiada"
-      },
-      "sunshine_duration": {
-        "name": "Durata del soleggiamento"
-      },
-      "global_radiation": {
-        "name": "Radiazione globale"
-      },
-      "uv_index": {
-        "name": "Indice UV"
-      },
-      "snow_depth": {
-        "name": "Altezza della neve"
-      },
-      "foehn_index": {
-        "name": "Indice di favonio"
-      },
-      "soil_temperature_5cm": {
-        "name": "Temperatura del suolo 5 cm"
-      },
-      "soil_temperature_10cm": {
-        "name": "Temperatura del suolo 10 cm"
-      },
-      "soil_temperature_20cm": {
-        "name": "Temperatura del suolo 20 cm"
-      },
-      "pm25": {
-        "name": "PM2.5"
-      },
-      "pm10": {
-        "name": "PM10"
-      },
-      "nitrogen_dioxide": {
-        "name": "Diossido di azoto"
-      },
-      "ozone": {
-        "name": "Ozono"
-      },
-      "heating_degree_days": {
-        "name": "Gradi giorno di riscaldamento"
-      },
-      "season_heating_degree_days": {
-        "name": "Gradi giorno di riscaldamento (stagione)"
-      },
-      "ms_pollen_birch": {
-        "name": "Polleni di betulla (misurati)"
-      },
-      "ms_pollen_alder": {
-        "name": "Polleni di ontano (misurati)"
-      },
-      "ms_pollen_hazel": {
-        "name": "Polleni di nocciolo (misurati)"
-      },
-      "ms_pollen_grass": {
-        "name": "Polleni di graminacee (misurati)"
-      },
-      "ms_pollen_beech": {
-        "name": "Polleni di faggio (misurati)"
-      },
-      "ms_pollen_ash": {
-        "name": "Polleni di frassino (misurati)"
-      }
+      "temperature": { "name": "Temperatura" },
+      "humidity": { "name": "Umidità" },
+      "wind_speed": { "name": "Velocità del vento" },
+      "wind_direction": { "name": "Direzione del vento" },
+      "precipitation": { "name": "Precipitazioni" },
+      "pressure": { "name": "Pressione" },
+      "wind_gust": { "name": "Raffica di vento" },
+      "dew_point": { "name": "Punto di rugiada" },
+      "sunshine_duration": { "name": "Durata del soleggiamento" },
+      "global_radiation": { "name": "Radiazione globale" },
+      "uv_index": { "name": "Indice UV" },
+      "snow_depth": { "name": "Altezza della neve" },
+      "foehn_index": { "name": "Indice di favonio" },
+      "soil_temperature_5cm": { "name": "Temperatura del suolo 5 cm" },
+      "soil_temperature_10cm": { "name": "Temperatura del suolo 10 cm" },
+      "soil_temperature_20cm": { "name": "Temperatura del suolo 20 cm" },
+      "pm25": { "name": "PM2.5" },
+      "pm10": { "name": "PM10" },
+      "nitrogen_dioxide": { "name": "Diossido di azoto" },
+      "ozone": { "name": "Ozono" },
+      "heating_degree_days": { "name": "Gradi giorno di riscaldamento" },
+      "season_heating_degree_days": { "name": "Gradi giorno di riscaldamento (stagione)" },
+      "pollen_birch": { "name": "Pollini di betulla" },
+      "pollen_alder": { "name": "Pollini di ontano" },
+      "pollen_grass": { "name": "Pollini di graminacee" },
+      "pollen_mugwort": { "name": "Pollini di artemisia" },
+      "pollen_ambrosia": { "name": "Pollini di ambrosia" },
+      "ms_pollen_birch": { "name": "Pollini di betulla (misurati)" },
+      "ms_pollen_alder": { "name": "Pollini di ontano (misurati)" },
+      "ms_pollen_hazel": { "name": "Pollini di nocciolo (misurati)" },
+      "ms_pollen_grass": { "name": "Pollini di graminacee (misurati)" },
+      "ms_pollen_beech": { "name": "Pollini di faggio (misurati)" },
+      "ms_pollen_ash": { "name": "Pollini di frassino (misurati)" }
+    },
+    "binary_sensor": {
+      "any_alert": { "name": "Allerta meteo" },
+      "critical_alert": { "name": "Allerta meteo critica" }
     }
   }
 }

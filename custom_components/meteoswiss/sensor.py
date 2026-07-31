@@ -1,7 +1,6 @@
 """Sensor platform for meteoswiss integration."""
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -639,10 +638,8 @@ class MeteoSwissSeasonHgtSensor(CoordinatorEntity, SensorEntity):
 # MeteoSwiss Measured Pollen Sensors                                          #
 # --------------------------------------------------------------------------- #
 
-from dataclasses import dataclass as _dc
 
-
-@_dc
+@dataclass
 class MS_PollenSensorDescription(SensorEntityDescription):
     """Describes a MeteoSwiss measured pollen sensor."""
 

@@ -49,90 +49,43 @@
   "title": "MeteoSwiss",
   "entity": {
     "sensor": {
-      "temperature": {
-        "name": "Temperatur"
-      },
-      "humidity": {
-        "name": "Luftfeuchtigkeit"
-      },
-      "wind_speed": {
-        "name": "Windgeschwindigkeit"
-      },
-      "wind_direction": {
-        "name": "Windrichtung"
-      },
-      "precipitation": {
-        "name": "Niederschlag"
-      },
-      "pressure": {
-        "name": "Luftdruck"
-      },
-      "wind_gust": {
-        "name": "Windböe"
-      },
-      "dew_point": {
-        "name": "Taupunkt"
-      },
-      "sunshine_duration": {
-        "name": "Sonnenscheindauer"
-      },
-      "global_radiation": {
-        "name": "Globalstrahlung"
-      },
-      "uv_index": {
-        "name": "UV-Index"
-      },
-      "snow_depth": {
-        "name": "Schneehöhe"
-      },
-      "foehn_index": {
-        "name": "Föhnindex"
-      },
-      "soil_temperature_5cm": {
-        "name": "Bodentemperatur 5 cm"
-      },
-      "soil_temperature_10cm": {
-        "name": "Bodentemperatur 10 cm"
-      },
-      "soil_temperature_20cm": {
-        "name": "Bodentemperatur 20 cm"
-      },
-      "pm25": {
-        "name": "Feinstaub PM2.5"
-      },
-      "pm10": {
-        "name": "Feinstaub PM10"
-      },
-      "nitrogen_dioxide": {
-        "name": "Stickstoffdioxid"
-      },
-      "ozone": {
-        "name": "Ozon"
-      },
-      "heating_degree_days": {
-        "name": "Heizgradtage"
-      },
-      "season_heating_degree_days": {
-        "name": "Heizgradtage Saison"
-      },
-      "ms_pollen_birch": {
-        "name": "Birkenpollen (gemessen)"
-      },
-      "ms_pollen_alder": {
-        "name": "Erlenpollen (gemessen)"
-      },
-      "ms_pollen_hazel": {
-        "name": "Haselpollen (gemessen)"
-      },
-      "ms_pollen_grass": {
-        "name": "Gräserpollen (gemessen)"
-      },
-      "ms_pollen_beech": {
-        "name": "Buchenpollen (gemessen)"
-      },
-      "ms_pollen_ash": {
-        "name": "Eschenpollen (gemessen)"
-      }
+      "temperature": { "name": "Temperatur" },
+      "humidity": { "name": "Luftfeuchtigkeit" },
+      "wind_speed": { "name": "Windgeschwindigkeit" },
+      "wind_direction": { "name": "Windrichtung" },
+      "precipitation": { "name": "Niederschlag" },
+      "pressure": { "name": "Luftdruck" },
+      "wind_gust": { "name": "Windböe" },
+      "dew_point": { "name": "Taupunkt" },
+      "sunshine_duration": { "name": "Sonnenscheindauer" },
+      "global_radiation": { "name": "Globalstrahlung" },
+      "uv_index": { "name": "UV-Index" },
+      "snow_depth": { "name": "Schneehöhe" },
+      "foehn_index": { "name": "Föhnindex" },
+      "soil_temperature_5cm": { "name": "Bodentemperatur 5 cm" },
+      "soil_temperature_10cm": { "name": "Bodentemperatur 10 cm" },
+      "soil_temperature_20cm": { "name": "Bodentemperatur 20 cm" },
+      "pm25": { "name": "Feinstaub PM2.5" },
+      "pm10": { "name": "Feinstaub PM10" },
+      "nitrogen_dioxide": { "name": "Stickstoffdioxid" },
+      "ozone": { "name": "Ozon" },
+      "heating_degree_days": { "name": "Heizgradtage" },
+      "season_heating_degree_days": { "name": "Heizgradtage Saison" },
+      "pollen_birch": { "name": "Birkenpollen" },
+      "pollen_alder": { "name": "Erlenpollen" },
+      "pollen_grass": { "name": "Gräserpollen" },
+      "pollen_mugwort": { "name": "Beifusspollen" },
+      "pollen_ambrosia": { "name": "Ambrosiapollen" },
+      "ms_pollen_birch": { "name": "Birkenpollen (gemessen)" },
+      "ms_pollen_alder": { "name": "Erlenpollen (gemessen)" },
+      "ms_pollen_hazel": { "name": "Haselpollen (gemessen)" },
+      "ms_pollen_grass": { "name": "Gräserpollen (gemessen)" },
+      "ms_pollen_beech": { "name": "Buchenpollen (gemessen)" },
+      "ms_pollen_ash": { "name": "Eschenpollen (gemessen)" }
+    },
+    "binary_sensor": {
+      "any_alert": { "name": "Wetterwarnung" },
+      "critical_alert": { "name": "Kritische Wetterwarnung" }
     }
   }
 }

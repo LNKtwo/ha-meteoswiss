@@ -35,7 +35,6 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.WEATHER,
     Platform.BINARY_SENSOR,
-    Platform.CAMERA,
 ]
 
 

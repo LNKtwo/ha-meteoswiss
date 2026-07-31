@@ -12,7 +12,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .cache import get_current_weather_cache
 from .const import (
-    CONF_POSTAL_CODE,
     DEFAULT_API_TIMEOUT,
     DOMAIN,
     MIN_UPDATE_INTERVAL,
