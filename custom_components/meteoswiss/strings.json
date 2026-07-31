@@ -40,7 +40,8 @@
         "description": "Adjust update interval and data source.",
         "data": {
           "update_interval": "Update Interval (seconds, min 600)",
-          "data_source": "Data Source"
+          "data_source": "Data Source",
+          "pollen_station": "MeteoSwiss Pollen Station"
         }
       }
     }
@@ -107,6 +108,30 @@
       },
       "ozone": {
         "name": "Ozone"
+      },
+      "heating_degree_days": {
+        "name": "Heating Degree Days"
+      },
+      "season_heating_degree_days": {
+        "name": "Season Heating Degree Days"
+      },
+      "ms_pollen_birch": {
+        "name": "Birch Pollen (Measured)"
+      },
+      "ms_pollen_alder": {
+        "name": "Alder Pollen (Measured)"
+      },
+      "ms_pollen_hazel": {
+        "name": "Hazel Pollen (Measured)"
+      },
+      "ms_pollen_grass": {
+        "name": "Grass Pollen (Measured)"
+      },
+      "ms_pollen_beech": {
+        "name": "Beech Pollen (Measured)"
+      },
+      "ms_pollen_ash": {
+        "name": "Ash Pollen (Measured)"
       }
     }
   }

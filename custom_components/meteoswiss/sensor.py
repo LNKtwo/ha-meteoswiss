@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Final
 
 from homeassistant.components.sensor import (
@@ -73,6 +74,11 @@ from .const import (
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .stations_map import MeteoSwissStationsMap
+from .calc import (
+    calculate_heating_degree_days,
+    get_heating_season_start_date,
+    is_in_heating_season,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -257,6 +263,26 @@ async def async_setup_entry(
             for description in AIR_QUALITY_SENSOR_DESCRIPTIONS
         )
         _LOGGER.debug("Added %d air quality sensors", len(AIR_QUALITY_SENSOR_DESCRIPTIONS))
+
+    # Add heating degree days sensors
+    forecast_coordinator = hass.data[DOMAIN][entry.entry_id].get("forecast_coordinator")
+    if forecast_coordinator:
+        entities.append(
+            MeteoSwissHeatingDegreeDaysSensor(forecast_coordinator, entry, station_name)
+        )
+        entities.append(
+            MeteoSwissSeasonHgtSensor(forecast_coordinator, entry, station_name)
+        )
+        _LOGGER.debug("Added heating degree days sensors")
+
+    # Add MeteoSwiss measured pollen sensors
+    ms_pollen_coordinator = hass.data[DOMAIN][entry.entry_id].get("meteoswiss_pollen_coordinator")
+    if ms_pollen_coordinator:
+        for description in MS_POLLEN_SENSOR_DESCRIPTIONS:
+            entities.append(
+                MeteoSwissMeasuredPollenSensor(ms_pollen_coordinator, entry, description, station_name)
+            )
+        _LOGGER.debug("Added %d MeteoSwiss measured pollen sensors", len(MS_POLLEN_SENSOR_DESCRIPTIONS))
 
     async_add_entities(entities)
 
@@ -449,4 +475,285 @@ class MeteoSwissAirQualitySensor(CoordinatorEntity, SensorEntity):
             self._attr_native_value = value
         else:
             self._attr_native_value = None
+        super()._handle_coordinator_update()
+
+
+# --------------------------------------------------------------------------- #
+# Heating Degree Days (Heizgradtage) Sensors                                   #
+# --------------------------------------------------------------------------- #
+
+class MeteoSwissHeatingDegreeDaysSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for daily heating degree days (SIA 381/3)."""
+
+    def __init__(
+        self,
+        forecast_coordinator: DataUpdateCoordinator,
+        entry: ConfigEntry,
+        station_name: str,
+    ) -> None:
+        super().__init__(forecast_coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_heating_degree_days"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=f"MeteoSwiss {station_name}",
+            manufacturer="MeteoSwiss",
+            model="Heizgradtage",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = ATTRIBUTION
+        self.entity_description = SensorEntityDescription(
+            key="heating_degree_days",
+            translation_key="heating_degree_days",
+            device_class=None,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement="°C·d",
+            icon="mdi:thermostat",
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Calculate HGt from forecast daily mean temperature."""
+        if not self.coordinator.data:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = None
+            super()._handle_coordinator_update()
+            return
+
+        # Use today's forecast entries to compute daily mean
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_temps = [
+            e.get("temperature")
+            for e in self.coordinator.data
+            if e.get("datetime", "").startswith(today_str) and e.get("temperature") is not None
+        ]
+
+        if today_temps:
+            daily_mean = sum(today_temps) / len(today_temps)
+            hgt = calculate_heating_degree_days(daily_mean)
+            self._attr_native_value = round(hgt, 1) if hgt is not None else None
+            self._attr_extra_state_attributes = {
+                "daily_mean_temp": round(daily_mean, 1),
+                "heating_threshold": 12.0,
+                "in_heating_season": is_in_heating_season(),
+            }
+        else:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {
+                "in_heating_season": is_in_heating_season(),
+            }
+
+        super()._handle_coordinator_update()
+
+
+class MeteoSwissSeasonHgtSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for accumulated heating degree days since heating season start."""
+
+    def __init__(
+        self,
+        forecast_coordinator: DataUpdateCoordinator,
+        entry: ConfigEntry,
+        station_name: str,
+    ) -> None:
+        super().__init__(forecast_coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_season_hgt"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=f"MeteoSwiss {station_name}",
+            manufacturer="MeteoSwiss",
+            model="Heizgradtage Saison",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = ATTRIBUTION
+        self.entity_description = SensorEntityDescription(
+            key="season_hgt",
+            translation_key="season_heating_degree_days",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement="°C·d",
+            icon="mdi:calendar-sync",
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Calculate season accumulated HGt."""
+        if not self.coordinator.data:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = None
+            super()._handle_coordinator_update()
+            return
+
+        # Compute season start
+        season_start = get_heating_season_start_date()
+
+        # We only have forecast data (5 days), so we can only estimate
+        # For a proper season total, we'd need historical daily data.
+        # For now, compute HGt for available forecast days that fall in heating season.
+        season_hgt = 0.0
+        days_counted = 0
+
+        # Group forecast entries by day
+        daily_means: dict[str, list[float]] = {}
+        for entry_data in self.coordinator.data:
+            dt_str = entry_data.get("datetime", "")
+            temp = entry_data.get("temperature")
+            if not dt_str or temp is None:
+                continue
+            day_str = dt_str[:10]
+            daily_means.setdefault(day_str, []).append(temp)
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_hgt = 0.0
+
+        for day_str, temps in sorted(daily_means.items()):
+            try:
+                day_date = date.fromisoformat(day_str)
+            except ValueError:
+                continue
+
+            if day_date < season_start:
+                continue
+            if day_date > date.today():
+                # Include future forecast days as estimates
+                pass
+
+            daily_mean = sum(temps) / len(temps)
+            hgt = calculate_heating_degree_days(daily_mean)
+            if hgt is not None:
+                season_hgt += hgt
+                days_counted += 1
+                if day_str == today_str:
+                    today_hgt = hgt
+
+        self._attr_native_value = round(season_hgt, 1)
+        self._attr_extra_state_attributes = {
+            "season_start": season_start.isoformat(),
+            "days_counted": days_counted,
+            "today_hgt": round(today_hgt, 1),
+            "note": "Based on available forecast data only. For full season total, historical daily data is needed.",
+        }
+
+        super()._handle_coordinator_update()
+
+
+# --------------------------------------------------------------------------- #
+# MeteoSwiss Measured Pollen Sensors                                          #
+# --------------------------------------------------------------------------- #
+
+from dataclasses import dataclass as _dc
+
+
+@_dc
+class MS_PollenSensorDescription(SensorEntityDescription):
+    """Describes a MeteoSwiss measured pollen sensor."""
+
+    pollen_type: str = ""
+    pollen_type_name: str = ""
+
+
+MS_POLLEN_SENSOR_DESCRIPTIONS: Final[tuple[MS_PollenSensorDescription, ...]] = (
+    MS_PollenSensorDescription(
+        key="ms_pollen_birch",
+        translation_key="ms_pollen_birch",
+        name="Birch Pollen (Measured)",
+        icon="mdi:tree",
+        pollen_type="birch",
+        pollen_type_name="Birch",
+    ),
+    MS_PollenSensorDescription(
+        key="ms_pollen_alder",
+        translation_key="ms_pollen_alder",
+        name="Alder Pollen (Measured)",
+        icon="mdi:pine-tree",
+        pollen_type="alder",
+        pollen_type_name="Alder",
+    ),
+    MS_PollenSensorDescription(
+        key="ms_pollen_hazel",
+        translation_key="ms_pollen_hazel",
+        name="Hazel Pollen (Measured)",
+        icon="mdi:branch",
+        pollen_type="hazel",
+        pollen_type_name="Hazel",
+    ),
+    MS_PollenSensorDescription(
+        key="ms_pollen_grass",
+        translation_key="ms_pollen_grass",
+        name="Grass Pollen (Measured)",
+        icon="mdi:grass",
+        pollen_type="grass",
+        pollen_type_name="Grass",
+    ),
+    MS_PollenSensorDescription(
+        key="ms_pollen_beech",
+        translation_key="ms_pollen_beech",
+        name="Beech Pollen (Measured)",
+        icon="mdi:tree-outline",
+        pollen_type="beech",
+        pollen_type_name="Beech",
+    ),
+    MS_PollenSensorDescription(
+        key="ms_pollen_ash",
+        translation_key="ms_pollen_ash",
+        name="Ash Pollen (Measured)",
+        icon="mdi:leaf",
+        pollen_type="ash",
+        pollen_type_name="Ash",
+    ),
+)
+
+
+class MeteoSwissMeasuredPollenSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a MeteoSwiss measured pollen sensor."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: MS_PollenSensorDescription,
+        station_name: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_ms_pollen_{description.pollen_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"ms_pollen_{entry.entry_id}")},
+            name=f"MeteoSwiss Pollen (Measured) - {station_name}",
+            manufacturer="MeteoSwiss",
+            model="Pollen Station",
+        )
+        self._attr_has_entity_name = True
+        self._attr_attribution = "Source: MeteoSwiss ogd-pollen"
+        try:
+            self._attr_entity_category = EntityCategory.HEALTH
+        except AttributeError:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._pollen_type = description.pollen_type
+        self._pollen_type_name = description.pollen_type_name
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from coordinator."""
+        if self.coordinator.data:
+            pollen_data = self.coordinator.data.get(self._pollen_type)
+            if pollen_data and isinstance(pollen_data, dict):
+                self._attr_native_value = pollen_data.get("current")
+                self._attr_extra_state_attributes = {
+                    "pollen_type": self._pollen_type,
+                    "pollen_type_name": self._pollen_type_name,
+                    "unit": pollen_data.get("unit", "No/m³"),
+                    "source": pollen_data.get("source", "MeteoSwiss measured"),
+                    "history_24h": pollen_data.get("history_24h", []),
+                    "station": self.coordinator.data.get("station_id", ""),
+                    "last_update": self.coordinator.data.get("last_update", ""),
+                }
+            else:
+                self._attr_native_value = None
+                self._attr_extra_state_attributes = {
+                    "pollen_type": self._pollen_type,
+                    "pollen_type_name": self._pollen_type_name,
+                    "station": self.coordinator.data.get("station_id", "") if self.coordinator.data else "",
+                }
+        else:
+            self._attr_native_value = None
+
         super()._handle_coordinator_update()

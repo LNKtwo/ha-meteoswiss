@@ -8,6 +8,9 @@ import aiohttp
 
 from aiohttp import TCPConnector
 
+# Heating threshold (SIA 381/3)
+HEATING_THRESHOLD: Final = 12.0
+
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
 
@@ -45,6 +48,10 @@ CONF_DATA_SOURCE: Final = "data_source"
 DATA_SOURCE_METEOSWISS: Final = "meteoswiss"
 DATA_SOURCE_OPENMETEO: Final = "openmeteo"
 
+# Pollen data sources
+POLLEN_SOURCE_METEOSWISS: Final = "meteoswiss"
+POLLEN_SOURCE_OPENMETEO: Final = "openmeteo"
+
 # Defaults
 DEFAULT_UPDATE_INTERVAL_SEC: Final = 600
 
@@ -81,6 +88,9 @@ CONDITION_SUNNY = "sunny"
 
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
+
+# Pollen station default
+CONF_POLLEN_STATION: Final = "pollen_station"
 
 # API timeout (30 seconds for all requests)
 DEFAULT_API_TIMEOUT: Final = aiohttp.ClientTimeout(total=30)

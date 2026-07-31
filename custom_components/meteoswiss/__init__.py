@@ -27,6 +27,7 @@ from .const import (
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .forecast_coordinator import MeteoSwissForecastCoordinator
 from .openmeteo_coordinator import OpenMeteoDataUpdateCoordinator
+from .pollen_meteoswiss import MeteoSwissPollenCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.WEATHER,
     Platform.BINARY_SENSOR,
+    Platform.CAMERA,
     Platform.DIAGNOSTICS,
 ]
 
@@ -196,16 +198,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session=shared_session,
     )
 
+    # Create MeteoSwiss measured pollen coordinator
+    pollen_station = entry.options.get("pollen_station", "PBE")
+    meteoswiss_pollen_coordinator = MeteoSwissPollenCoordinator(
+        hass,
+        station_id=pollen_station,
+        update_interval=3600,  # 1 hour
+        session=shared_session,
+    )
+
     # Fetch initial alerts data
     await alerts_coordinator.async_config_entry_first_refresh()
 
     # Fetch initial pollen data
     await pollen_coordinator.async_config_entry_first_refresh()
 
+    # Fetch initial MeteoSwiss measured pollen data
+    try:
+        await meteoswiss_pollen_coordinator.async_config_entry_first_refresh()
+    except Exception as err:
+        _LOGGER.warning("Failed to fetch initial MeteoSwiss pollen data: %s", err)
+
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
     hass.data[DOMAIN][entry.entry_id]["forecast_coordinator"] = forecast_coordinator
     hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"] = alerts_coordinator
     hass.data[DOMAIN][entry.entry_id]["pollen_coordinator"] = pollen_coordinator
+    hass.data[DOMAIN][entry.entry_id]["meteoswiss_pollen_coordinator"] = meteoswiss_pollen_coordinator
     hass.data[DOMAIN][entry.entry_id]["data_source"] = data_source
     hass.data[DOMAIN][entry.entry_id]["session"] = shared_session
 
