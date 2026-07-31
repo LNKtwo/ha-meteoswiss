@@ -115,7 +115,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_fetch_data(self) -> dict[str, Any] | None:
         """Fetch data from Open-Meteo API."""
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            raise RuntimeError("No session provided")
 
         # Build API URL with current weather and hourly forecast
         params = {
@@ -147,9 +147,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Open-Meteo API request failed: %s", err)
             return None
         except Exception as err:
-            _LOGGER.error("Error fetching Open-Meteo data: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error fetching Open-Meteo data: %s", err)
             return None
 
     def _parse_response(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -258,9 +256,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return result
 
         except Exception as err:
-            _LOGGER.error("Error parsing Open-Meteo response: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error parsing Open-Meteo response: %s", err)
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:

@@ -33,7 +33,6 @@ from .const import (
     STAC_COLLECTION,
 )
 from .retry import async_retry_with_backoff
-from .const import _create_ssl_connector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,8 +84,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_get_station_data_url(self) -> str | None:
         """Fetch the 10-minute CSV URL for the station."""
         if self._session is None:
-            # Use SSL disabled connector for systems with outdated certificates
-            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
+            raise RuntimeError("No session provided")
 
         try:
             url = f"{API_BASE}/collections/{STAC_COLLECTION}/items/{self.station_id}"
@@ -121,17 +119,14 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Timeout fetching station info")
             return None
         except Exception as err:
-            _LOGGER.error("Error fetching station info: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error fetching station info: %s", err)
             return None
 
     @async_retry_with_backoff(max_attempts=4, base_delay=1.0, max_delay=10.0)
     async def _async_download_and_parse_csv(self, csv_url: str) -> dict[str, Any] | None:
         """Download CSV and parse the latest values."""
         if self._session is None:
-            # Use SSL disabled connector for systems with outdated certificates
-            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
+            raise RuntimeError("No session provided")
 
         try:
             _LOGGER.debug("Downloading CSV from: %s", csv_url)
@@ -186,9 +181,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return self._parse_csv_row(row_dict)
 
         except Exception as err:
-            _LOGGER.error("Error parsing CSV: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error parsing CSV: %s", err)
             return None
 
     def _parse_csv_row(self, row: dict[str, str]) -> dict[str, Any]:
@@ -325,9 +318,7 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return result
 
         except Exception as err:
-            _LOGGER.error("Error parsing CSV row: %s", err)
-            import traceback
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Error parsing CSV row: %s", err)
             return {}
 
     async def _async_update_data(self) -> dict[str, Any]:

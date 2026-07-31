@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
@@ -54,7 +54,7 @@ class WeatherAlert:
         if self.valid_to is None:
             return True  # No expiry date, assume active
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return self.valid_from <= now <= self.valid_to
 
     def is_critical(self) -> bool:
@@ -104,8 +104,7 @@ class MeteoSwissAlertsAPI:
             List of weather alerts
         """
         if self._session is None:
-            from .const import _create_ssl_connector
-            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
+            raise RuntimeError("No session provided")
 
         try:
             # Format PLZ: add "00" suffix (e.g., "8001" -> "800100")
@@ -263,7 +262,6 @@ class MeteoSwissAlertsAPI:
         return warn_level_names.get(warn_level, f"Level {warn_level}")
 
     async def close(self) -> None:
-        """Close aiohttp session."""
-        if self._session is not None:
-            await self._session.close()
-            self._session = None
+        """Close is handled centrally by the integration setup."""
+        # Session is shared and closed in async_unload_entry
+        pass

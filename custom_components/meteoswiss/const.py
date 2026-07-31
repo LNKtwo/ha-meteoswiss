@@ -8,7 +8,6 @@ from aiohttp import TCPConnector
 
 DOMAIN: Final = "meteoswiss"
 NAME: Final = "MeteoSwiss"
-VERSION: Final = "5.2.0"
 
 # API URLs
 API_BASE: Final = "https://data.geo.admin.ch/api/stac/v1"

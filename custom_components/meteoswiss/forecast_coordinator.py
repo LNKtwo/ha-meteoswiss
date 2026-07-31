@@ -12,7 +12,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .cache import get_forecast_cache
-from .const import _create_ssl_connector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +94,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             raise UpdateFailed("No coordinates available for Open-Meteo")
 
         if self._session is None:
-            self._session = aiohttp.ClientSession(connector=_create_ssl_connector())
+            raise RuntimeError("No session provided")
 
         url = (
             f"{OPEN_METEO_BASE_URL}"
