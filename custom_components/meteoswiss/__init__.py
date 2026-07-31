@@ -26,7 +26,6 @@ from .const import (
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .forecast_coordinator import MeteoSwissForecastCoordinator
 from .openmeteo_coordinator import OpenMeteoDataUpdateCoordinator
-from .pollen import MeteoSwissPollenAPI
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,16 +36,15 @@ PLATFORMS: list[Platform] = [
 ]
 
 
-async def _load_station_coordinates(station_id: str) -> tuple[float | None, float | None]:
+async def _load_station_coordinates(station_id: str, session: aiohttp.ClientSession) -> tuple[float | None, float | None]:
     """Load station coordinates from MeteoSwiss metadata CSV."""
     try:
-        async with aiohttp.ClientSession(connector=_create_ssl_connector()) as session:
-            async with session.get(STATIONS_METADATA_URL) as response:
-                if response.status != 200:
-                    _LOGGER.error("Failed to load stations: %s", response.status)
-                    return None, None
+        async with session.get(STATIONS_METADATA_URL) as response:
+            if response.status != 200:
+                _LOGGER.error("Failed to load stations: %s", response.status)
+                return None, None
 
-                content_bytes = await response.read()
+            content_bytes = await response.read()
 
         # Try different encodings for CSV
         lines = None
@@ -141,7 +139,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Load station coordinates for forecast (Open-Meteo)
         # IMPORTANT: Use station coordinates, not entry coordinates (user's location)
-        lat, lon = await _load_station_coordinates(station_id)
+        lat, lon = await _load_station_coordinates(station_id, shared_session)
 
         if lat is None or lon is None:
             _LOGGER.warning("Could not load station coordinates for forecast")
@@ -190,6 +188,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         latitude=pollen_latitude,
         longitude=pollen_longitude,
         update_interval=1800,  # 30 minutes
+        session=shared_session,
     )
 
     # Fetch initial alerts data

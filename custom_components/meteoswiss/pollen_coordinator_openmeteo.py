@@ -72,7 +72,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_fetch_data(self) -> dict[str, Any] | None:
         """Fetch data from Open-Meteo Air Quality API."""
         if self._session is None:
-            self._session = aiohttp.ClientSession()
+            raise RuntimeError("No aiohttp session provided to OpenMeteoPollenCoordinator")
 
         # Build API URL with pollen variables
         params = {
@@ -84,7 +84,7 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
 
         try:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Fetching Open-Meteo Air Quality data for lat=%s, lon=%s",
                 self.latitude,
                 self.longitude,
@@ -203,8 +203,4 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return data
 
-    async def async_close(self) -> None:
-        """Close aiohttp session."""
-        if self._session is not None:
-            await self._session.close()
-            self._session = None
+

@@ -50,7 +50,8 @@ async def async_setup_entry(
 
     # Listen for forecast coordinator updates
     if forecast_coordinator:
-        forecast_coordinator.async_add_listener(entity._handle_forecast_update)
+        unsub = forecast_coordinator.async_add_listener(entity._handle_forecast_update)
+        entry.async_on_unload(unsub)
         _LOGGER.debug("Subscribed to forecast coordinator updates")
 
     async_add_entities([entity])

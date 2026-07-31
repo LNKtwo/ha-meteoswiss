@@ -54,19 +54,27 @@ class MeteoSwissStationsMap:
         self._stations: dict[str, WeatherStation] = {}
         self._loaded = False
 
-    async def load_stations(self) -> dict[str, WeatherStation]:
+    async def load_stations(self, session: aiohttp.ClientSession | None = None) -> dict[str, WeatherStation]:
         """Load all weather stations from MeteoSwiss metadata."""
         if self._loaded:
             return self._stations
 
         try:
-            async with aiohttp.ClientSession() as session:
+            if session is not None:
                 async with session.get(STATIONS_METADATA_URL) as response:
                     if response.status != 200:
                         _LOGGER.error("Failed to load stations: %s", response.status)
                         return {}
 
                     content_bytes = await response.read()
+            else:
+                async with aiohttp.ClientSession() as session_local:
+                    async with session_local.get(STATIONS_METADATA_URL) as response:
+                        if response.status != 200:
+                            _LOGGER.error("Failed to load stations: %s", response.status)
+                            return {}
+
+                        content_bytes = await response.read()
 
             # Try different encodings for CSV
             lines = None
@@ -236,10 +244,10 @@ class MeteoSwissStationsMap:
 _stations_map: MeteoSwissStationsMap | None = None
 
 
-async def get_stations_map() -> MeteoSwissStationsMap:
+async def get_stations_map(session: aiohttp.ClientSession | None = None) -> MeteoSwissStationsMap:
     """Get global stations map instance."""
     global _stations_map
     if _stations_map is None:
         _stations_map = MeteoSwissStationsMap()
-        await _stations_map.load_stations()
+        await _stations_map.load_stations(session=session)
     return _stations_map
