@@ -27,9 +27,6 @@ from .const import (
     SENSOR_PRECIPITATION,
     SENSOR_PRESSURE,
     SENSOR_SNOW_DEPTH,
-    SENSOR_SOIL_TEMP_10CM,
-    SENSOR_SOIL_TEMP_20CM,
-    SENSOR_SOIL_TEMP_5CM,
     SENSOR_SUNSHINE,
     SENSOR_TEMPERATURE,
     SENSOR_WIND_DIRECTION,
@@ -56,9 +53,6 @@ PARAM_GLOBAL_RAD = "gre000z0"  # Globalstrahlung; Zehnminutenmittel (W/m²)
 PARAM_SNOW_DEPTH = "htoauts0"  # Gesamtschneehöhe; Momentanwert (cm)
 PARAM_DEW_POINT = "tde200s0"  # Taupunkt 2m über Boden; Momentanwert (°C)
 PARAM_FOEHN_INDEX = "wcc006s0"  # Föhnindex; Momentanwert (Code)
-PARAM_SOIL_TEMP_5CM = "tso005s0"  # Bodentemperatur 5 cm Tiefe; Momentanwert (°C)
-PARAM_SOIL_TEMP_10CM = "tso010s0"  # Bodentemperatur 10 cm Tiefe; Momentanwert (°C)
-PARAM_SOIL_TEMP_20CM = "tso020s0"  # Bodentemperatur 20 cm Tiefe; Momentanwert (°C)
 
 
 class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -208,16 +202,10 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Parameters that might be empty in newest row but available in older rows
         fallback_params = [
             PARAM_FOEHN_INDEX,
-            PARAM_SOIL_TEMP_5CM,
-            PARAM_SOIL_TEMP_10CM,
-            PARAM_SOIL_TEMP_20CM,
             PARAM_SNOW_DEPTH,
         ]
         param_to_sensor = {
             PARAM_FOEHN_INDEX: SENSOR_FOEHN_INDEX,
-            PARAM_SOIL_TEMP_5CM: SENSOR_SOIL_TEMP_5CM,
-            PARAM_SOIL_TEMP_10CM: SENSOR_SOIL_TEMP_10CM,
-            PARAM_SOIL_TEMP_20CM: SENSOR_SOIL_TEMP_20CM,
             PARAM_SNOW_DEPTH: SENSOR_SNOW_DEPTH,
         }
         
@@ -255,9 +243,6 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 SENSOR_GLOBAL_RADIATION: None,
                 SENSOR_SNOW_DEPTH: None,
                 SENSOR_FOEHN_INDEX: None,
-                SENSOR_SOIL_TEMP_5CM: None,
-                SENSOR_SOIL_TEMP_10CM: None,
-                SENSOR_SOIL_TEMP_20CM: None,
                 "last_update": None,
             }
 
@@ -357,19 +342,8 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except (ValueError, TypeError) as e:
                     _LOGGER.debug("Could not parse foehn index '%s': %s", foehn_value, e)
 
-            # Parse soil temperatures (°C)
-            for param_key, sensor_key in (
-                (PARAM_SOIL_TEMP_5CM, SENSOR_SOIL_TEMP_5CM),
-                (PARAM_SOIL_TEMP_10CM, SENSOR_SOIL_TEMP_10CM),
-                (PARAM_SOIL_TEMP_20CM, SENSOR_SOIL_TEMP_20CM),
-            ):
-                soil_value = row.get(param_key)
-                if soil_value and soil_value.strip():
-                    try:
-                        result[sensor_key] = float(soil_value)
-                        _LOGGER.debug("Parsed %s: %s °C", sensor_key, result[sensor_key])
-                    except (ValueError, TypeError) as e:
-                        _LOGGER.debug("Could not parse %s '%s': %s", sensor_key, soil_value, e)
+            # Parse soil temperatures — removed (most stations don't measure)
+            # (parsing block removed)
 
             # Dew point: use measured value if available, otherwise calculate via Magnus formula
             dew_measured = row.get(PARAM_DEW_POINT)
