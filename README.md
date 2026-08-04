@@ -141,8 +141,10 @@ cd ha-meteoswiss
 
 Files are in `custom_components/meteoswiss/`. Test by symlinking into your HA config.
 
----
-
-## 📝 License
+---## 📝 License
 
 MIT — see [LICENSE](LICENSE)
+
+---
+
+*Made with ❤️ in Lucerne for the Home Assistant community.*
