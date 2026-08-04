@@ -61,9 +61,6 @@ from .const import (
     SENSOR_PRECIPITATION,
     SENSOR_PRESSURE,
     SENSOR_SNOW_DEPTH,
-    SENSOR_SOIL_TEMP_10CM,
-    SENSOR_SOIL_TEMP_20CM,
-    SENSOR_SOIL_TEMP_5CM,
     SENSOR_SUNSHINE,
     SENSOR_TEMPERATURE,
     SENSOR_UV_INDEX,
@@ -178,30 +175,9 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
         native_unit_of_measurement="Code",
         value_key=SENSOR_FOEHN_INDEX,
     ),
-    MeteoSwissSensorEntityDescription(
-        key=SENSOR_SOIL_TEMP_5CM,
-        translation_key="soil_temperature_5cm",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        value_key=SENSOR_SOIL_TEMP_5CM,
-    ),
-    MeteoSwissSensorEntityDescription(
-        key=SENSOR_SOIL_TEMP_10CM,
-        translation_key="soil_temperature_10cm",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        value_key=SENSOR_SOIL_TEMP_10CM,
-    ),
-    MeteoSwissSensorEntityDescription(
-        key=SENSOR_SOIL_TEMP_20CM,
-        translation_key="soil_temperature_20cm",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        value_key=SENSOR_SOIL_TEMP_20CM,
-    ),
+    # Soil temperature sensors removed — most SwissMetNet stations
+    # (including LUZ) don't measure soil temperatures. Only a few stations
+    # have probes at 5/10/20 cm depth. If needed, add back manually.
 )
 
 
