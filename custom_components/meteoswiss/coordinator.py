@@ -167,37 +167,77 @@ class MeteoSwissDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             _LOGGER.debug("CSV headers: %s", headers)
 
-            # Get the most recent data row (last non-empty line)
-            data_row = None
+            # Collect recent data rows (last 5 non-empty lines) for fallback parsing
+            recent_rows: list[str] = []
             for line in reversed(lines[1:]):
                 if line.strip():
-                    data_row = line.strip()
-                    break
+                    recent_rows.append(line.strip())
+                    if len(recent_rows) >= 5:
+                        break
 
-            if not data_row:
+            if not recent_rows:
                 _LOGGER.error("No valid data row found")
                 return None
 
-            # Parse the data row
-            values = [v.strip() for v in data_row.split(";")]
+            # Parse rows into dicts (newest first)
+            row_dicts: list[dict[str, str]] = []
+            for data_row in recent_rows:
+                values = [v.strip() for v in data_row.split(";")]
+                row_dict = {}
+                for i, header in enumerate(headers):
+                    if i < len(values):
+                        row_dict[header] = values[i]
+                row_dicts.append(row_dict)
 
-            _LOGGER.debug("CSV values: %s", values)
-            _LOGGER.debug("Data row: %s", data_row[:200] if len(data_row) > 200 else data_row)
+            _LOGGER.debug("CSV recent rows: %d", len(row_dicts))
 
-            # Create a dictionary of the row
-            row_dict = {}
-            for i, header in enumerate(headers):
-                if i < len(values):
-                    row_dict[header] = values[i]
-
-            _LOGGER.debug("Row dictionary keys: %s", list(row_dict.keys()))
-
-            # Parse the data
-            return self._parse_csv_row(row_dict)
+            # Parse the data using newest row, with fallback for empty values
+            return self._parse_csv_row_with_fallback(row_dicts)
 
         except Exception as err:
             _LOGGER.exception("Error parsing CSV: %s", err)
             return None
+
+    def _parse_csv_row_with_fallback(self, row_dicts: list[dict[str, str]]) -> dict[str, Any]:
+        """Parse CSV rows into normalized data, using fallback for empty values."""
+        if not row_dicts:
+            return {}
+        # Parse newest row first, then fill missing values from older rows
+        result = self._parse_csv_row(row_dicts[0])
+        
+        # Parameters that might be empty in newest row but available in older rows
+        fallback_params = [
+            PARAM_FOEHN_INDEX,
+            PARAM_SOIL_TEMP_5CM,
+            PARAM_SOIL_TEMP_10CM,
+            PARAM_SOIL_TEMP_20CM,
+            PARAM_SNOW_DEPTH,
+        ]
+        param_to_sensor = {
+            PARAM_FOEHN_INDEX: SENSOR_FOEHN_INDEX,
+            PARAM_SOIL_TEMP_5CM: SENSOR_SOIL_TEMP_5CM,
+            PARAM_SOIL_TEMP_10CM: SENSOR_SOIL_TEMP_10CM,
+            PARAM_SOIL_TEMP_20CM: SENSOR_SOIL_TEMP_20CM,
+            PARAM_SNOW_DEPTH: SENSOR_SNOW_DEPTH,
+        }
+        
+        for param_key in fallback_params:
+            sensor_key = param_to_sensor[param_key]
+            if result.get(sensor_key) is None:
+                for older_row in row_dicts[1:]:
+                    val = older_row.get(param_key, "").strip()
+                    if val:
+                        try:
+                            if sensor_key == SENSOR_FOEHN_INDEX:
+                                result[sensor_key] = int(float(val))
+                            else:
+                                result[sensor_key] = float(val)
+                            _LOGGER.debug("Fallback %s from older row: %s", sensor_key, result[sensor_key])
+                            break
+                        except (ValueError, TypeError):
+                            pass
+        
+        return result
 
     def _parse_csv_row(self, row: dict[str, str]) -> dict[str, Any]:
         """Parse a CSV row into normalized data."""
