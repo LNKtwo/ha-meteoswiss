@@ -163,14 +163,6 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
         value_key=SENSOR_GLOBAL_RADIATION,
     ),
     MeteoSwissSensorEntityDescription(
-        key=SENSOR_UV_INDEX,
-        translation_key="uv_index",
-        device_class=None,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="UV Index",
-        value_key=SENSOR_UV_INDEX,
-    ),
-    MeteoSwissSensorEntityDescription(
         key=SENSOR_SNOW_DEPTH,
         translation_key="snow_depth",
         device_class=SensorDeviceClass.DISTANCE,
@@ -438,6 +430,14 @@ AIR_QUALITY_SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, 
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=_CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         value_key=SENSOR_OZONE,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_UV_INDEX,
+        translation_key="uv_index",
+        device_class=None,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="UV Index",
+        value_key="uv_index",
     ),
 )
 
