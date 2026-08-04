@@ -32,6 +32,9 @@ AQ_PM10 = "pm10"
 AQ_NO2 = "nitrogen_dioxide"
 AQ_O3 = "ozone"
 
+# Open-Meteo Forecast API for UV index
+OPENMETEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+
 # Pollen types list
 POLLEN_TYPES = [
     POLLEN_ALDER,
@@ -113,7 +116,28 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 data = await response.json()
                 _LOGGER.debug("Open-Meteo AQ response keys: %s", data.keys())
 
-                return self._parse_response(data)
+                result = self._parse_response(data)
+
+                # Also fetch UV index from Open-Meteo Forecast API
+                try:
+                    uv_params = {
+                        "latitude": self.latitude,
+                        "longitude": self.longitude,
+                        "current": "uv_index",
+                        "timezone": "Europe/Zurich",
+                    }
+                    async with self._session.get(OPENMETEO_FORECAST_URL, params=uv_params) as uv_response:
+                        if uv_response.status == 200:
+                            uv_data = await uv_response.json()
+                            uv_current = uv_data.get("current", {})
+                            uv_val = uv_current.get("uv_index")
+                            if uv_val is not None:
+                                result["uv_index"] = float(uv_val)
+                                _LOGGER.debug("Fetched UV index from Open-Meteo: %s", result["uv_index"])
+                except Exception as uv_err:
+                    _LOGGER.debug("Could not fetch UV index: %s", uv_err)
+
+                return result
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Open-Meteo AQ API request failed: %s", err)
@@ -136,6 +160,8 @@ class OpenMeteoPollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "pm10": None,
                 "nitrogen_dioxide": None,
                 "ozone": None,
+                # UV index from Open-Meteo forecast (fetched separately)
+                "uv_index": None,
                 "last_update": None,
             }
 
