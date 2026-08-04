@@ -1,16 +1,16 @@
 # 🇨🇭 MeteoSwiss for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/LNKtwo/ha-meteoswiss)
-[![Version](https://img.shields.io/badge/version-8.0.0-blue.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
+[![Version](https://img.shields.io/badge/version-8.1.0-blue.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![HA Min Version](https://img.shields.io/badge/HA-2024.7%2B-41BDF5.svg)](https://www.home-assistant.io/)
 [![Downloads](https://img.shields.io/github/downloads/LNKtwo/ha-meteoswiss/total.svg)](https://github.com/LNKtwo/ha-meteoswiss/releases)
 
 **Swiss weather, alerts, pollen, and air quality for Home Assistant — powered by MeteoSwiss, Open-Meteo, and the Swiss federal open data platform.**
 
-Current conditions from 293+ SwissMetNet stations, official MeteoSwiss weather alerts, measured pollen concentrations from 16 pollen stations, air quality data, 5-day forecasts, heating degree days (Heizgradtage), and more — all in one integration.
+Current conditions from 293+ SwissMetNet stations, official MeteoSwiss weather alerts, measured pollen concentrations from 16 pollen stations, air quality data, 5-day forecasts, heating degree days (Heizgradtage), UV index, and more — all in one integration.
 
-["MeteoSwiss Dashboard"](screenshot.png)
+Companion card: **[ha-meteoswiss-card](https://github.com/LNKtwo/ha-meteoswiss-card)** — iOS Weather inspired glassmorphism dashboard card.
 
 ---
 
@@ -21,6 +21,7 @@ Current conditions from 293+ SwissMetNet stations, official MeteoSwiss weather a
 | 🌡️ | **Current Weather** | MeteoSwiss SwissMetNet | Temperature, humidity, wind, pressure, precipitation, dew point, sunshine, global radiation |
 | 💨 | **Wind & Foehn** | MeteoSwiss | Wind speed, direction, gust peak (1-second), unique Foehn index |
 | ❄️ | **Snow & Soil** | MeteoSwiss | Snow depth, soil temperatures at 5/10/20 cm depth |
+| ☀️ | **UV Index** | Open-Meteo | Current UV index |
 | ⛅ | **Forecast** | Open-Meteo | Hourly + daily forecast (5 days), WMO weather code mapping |
 | ⚠️ | **Weather Alerts** | MeteoSwiss App API | Official warnings: thunderstorm, rain, snow, wind, forest fire, flood |
 | 🌸 | **Pollen (Forecast)** | Open-Meteo AQI | Birch, alder, grass, mugwort, ragweed forecast concentrations |
@@ -28,8 +29,6 @@ Current conditions from 293+ SwissMetNet stations, official MeteoSwiss weather a
 | 🌫️ | **Air Quality** | Open-Meteo AQI | PM2.5, PM10, NO₂, O₃ concentrations |
 | 🏠 | **Heating Degree Days** | SIA 381/3 | Daily and seasonal Heizgradtage for energy monitoring |
 | 🗺️ | **Stations Map** | MeteoSwiss | GeoJSON of all weather stations for map overlays |
-| 🔁 | **Smart Caching** | Internal | TTL-based caching reduces API calls |
-| 🛡️ | **Resilience** | Internal | Circuit breaker + exponential backoff retry |
 
 ---
 
@@ -37,244 +36,113 @@ Current conditions from 293+ SwissMetNet stations, official MeteoSwiss weather a
 
 ### Via HACS (recommended)
 
-1. Go to **HACS** → **Integrations** → ⋮ → **Custom Repositories**
-2. Add `https://github.com/LNKtwo/ha-meteoswiss` as category **Integration**
-3. Search for **MeteoSwiss** → **Install**
-4. Restart Home Assistant
-5. **Settings** → **Devices & Services** → **Add Integration** → search **MeteoSwiss**
+1. Open **HACS** → **Integrations**
+2. Click **⋮** → **Custom repositories**
+3. Add:
+   - **URL:** `https://github.com/LNKtwo/ha-meteoswiss`
+   - **Category:** Integration
+4. Search for **"MeteoSwiss"** → **Install**
+5. Restart Home Assistant
+6. **Settings → Devices & Services → Add Integration** → search **"MeteoSwiss"**
+7. Choose your station (e.g. `LUZ` for Luzern) or enter postal code
 
 ### Manual
 
-1. Download the [`custom_components/meteoswiss/`](custom_components/meteoswiss/) folder
-2. Copy it to your HA `custom_components/` directory
+1. Download `custom_components/meteoswiss/` from the [latest release](../../releases)
+2. Copy to your `config/custom_components/meteoswiss/` directory
 3. Restart Home Assistant
-4. **Settings** → **Devices & Services** → **Add Integration** → search **MeteoSwiss**
+4. **Settings → Devices & Services → Add Integration** → **MeteoSwiss**
 
 ---
 
 ## ⚙️ Configuration
 
-The integration is set up entirely via Home Assistant's UI.
+The integration is configured via the UI (config flow). After installation:
 
-### Setup Options
+1. **Settings → Devices & Services → Add Integration → MeteoSwiss**
+2. Select your weather station by code (e.g. `LUZ`, `BER`, `BAS`) or enter your postal code
+3. The integration auto-detects your coordinates for forecast and pollen data
 
-| Field | Description | Required | Default |
-|---|---|:---:|---|
-| **Data Source** | `openmeteo` (global) or `meteoswiss` (Swiss stations) | ✅ | Open-Meteo |
-| **Postal Code** | Swiss postal code for weather alerts (e.g. `8001`) | ✅ | — |
-| **Station** | MeteoSwiss station (when using MeteoSwiss source) | ✅ | — |
-| **Latitude / Longitude** | Coordinates (when using Open-Meteo source) | ✅ | Switzerland center |
-| **Update Interval** | Refresh interval in seconds | ❌ | 600 (10 min) |
+### Options
 
-### Pollen Station Selection
-
-In the integration options, you can select which MeteoSwiss pollen station provides measured pollen data:
-
-| Code | Station |
-|---|---|
-| PBE | Bern |
-| PBS | Basel |
-| PBU | Buchs SG |
-| PCF | La Chaux-de-Fonds |
-| PDS | Davos / Wolfgang |
-| PGE | Genève |
-| PLO | Locarno / Monti |
-| PLS | Lausanne |
-| PLU | Lugano |
-| PLZ | Luzern |
-| PMU | Münsterlingen |
-| PNE | Neuchâtel |
-| PPY | Payerne |
-| PSN | Sion |
-| PZH | Zürich |
-| BLR | Coldrerio / Mezzana |
+| Option | Default | Description |
+|--------|---------|-------------|
+| Station | required | SwissMetNet station code (e.g. `LUZ`) |
+| Update interval | 600s | Data refresh interval (minimum 600s) |
+| Pollen station | `PLZ` | MeteoSwiss pollen measurement station |
+| Data source | MeteoSwiss | `meteoswiss` (SwissMetNet) or `openmeteo` (Open-Meteo) |
 
 ---
 
-## 📊 Sensor Reference
+## 🌍 Available Stations
 
-### Current Weather Sensors (MeteoSwiss SwissMetNet)
+293+ SwissMetNet stations across Switzerland. Find your station on the [MeteoSwiss measurement network map](https://www.meteoswiss.admin.ch/services-and-publications/applications/measurement-values-and-measuring-networks.html).
 
-| Sensor | Unit | Device Class | Update |
-|---|:---:|---|:---:|
-| Temperature | °C | Temperature | 10 min |
-| Humidity | % | Humidity | 10 min |
-| Wind Speed | km/h | Wind Speed | 10 min |
-| Wind Direction | ° | — | 10 min |
-| Wind Gust (1s peak) | km/h | Wind Speed | 10 min |
-| Pressure (QFF) | hPa | Pressure | 10 min |
-| Precipitation | mm | Precipitation | 10 min |
-| Dew Point | °C | Temperature | 10 min |
-| Sunshine Duration | min | Duration | 10 min |
-| Global Radiation | W/m² | Irradiance | 10 min |
-| Snow Depth | cm | Distance | 10 min |
-| Foehn Index | Code | — | 10 min |
-| Soil Temperature 5 cm | °C | Temperature | 10 min |
-| Soil Temperature 10 cm | °C | Temperature | 10 min |
-| Soil Temperature 20 cm | °C | Temperature | 10 min |
+Common stations:
 
-### Air Quality Sensors (Open-Meteo)
-
-| Sensor | Unit | Device Class | Update |
-|---|:---:|---|:---:|
-| PM2.5 | µg/m³ | PM2.5 | 30 min |
-| PM10 | µg/m³ | PM10 | 30 min |
-| Nitrogen Dioxide (NO₂) | µg/m³ | NO₂ | 30 min |
-| Ozone (O₃) | µg/m³ | O₃ | 30 min |
-
-### Pollen Sensors — Forecast (Open-Meteo)
-
-| Sensor | Unit | Update |
-|---|:---:|:---:|
-| Birch Pollen | grains/m³ | 30 min |
-| Alder Pollen | grains/m³ | 30 min |
-| Grass Pollen | grains/m³ | 30 min |
-| Mugwort Pollen | grains/m³ | 30 min |
-| Ragweed Pollen | grains/m³ | 30 min |
-
-### Pollen Sensors — Measured (MeteoSwiss)
-
-| Sensor | Unit | Update |
-|---|:---:|:---:|
-| Birch Pollen (Measured) | No/m³ | 1 hour |
-| Alder Pollen (Measured) | No/m³ | 1 hour |
-| Hazel Pollen (Measured) | No/m³ | 1 hour |
-| Beech Pollen (Measured) | No/m³ | 1 hour |
-| Ash Pollen (Measured) | No/m³ | 1 hour |
-| Grass Pollen (Measured) | No/m³ | 1 hour |
-
-### Heating Degree Days (SIA 381/3)
-
-| Sensor | Unit | Description |
-|---|:---:|---|
-| Heating Degree Days | °C·d | Daily HGt (12 °C threshold) |
-| Season Heating Degree Days | °C·d | Accumulated since Oct 1 |
-
-### Alert Binary Sensors (MeteoSwiss)
-
-| Sensor | Description |
-|---|---|
-| Weather Alert | On when any active MeteoSwiss warning exists |
-| Critical Weather Alert | On when level 3+ (significant danger) warning exists |
-
-### Weather Entity
-
-Provides current conditions + hourly (24h) and daily (5-day) forecasts via Open-Meteo.
+| Code | Location |
+|------|----------|
+| LUZ | Luzern |
+| BER | Bern |
+| BAS | Basel |
+| GUT | Güttingen (Bodensee) |
+| SMA | Zürich (SMA) |
+| CHA | Chur |
+| SIO | Sion |
+| GVE | Genève |
 
 ---
 
-## 🔌 Data Sources
+## 📊 Sensors
 
-| Source | API | Usage | Rate Limit |
-|---|---|---|---|
-| **MeteoSwiss SwissMetNet** | `data.geo.admin.ch` STAC | Current weather (10-min) | None (open data) |
-| **MeteoSwiss Alerts** | `app-prod-ws.meteoswiss-app.ch` | Weather warnings | None |
-| **MeteoSwiss Pollen** | `data.geo.admin.ch` ogd-pollen | Measured pollen (hourly) | None (open data) |
-| **Open-Meteo Forecast** | `api.open-meteo.com` | Weather forecast (5 days) | 10k/day (free) |
-| **Open-Meteo Air Quality** | `air-quality-api.open-meteo.com` | Pollen forecast, AQ | 10k/day (free) |
+All sensors are auto-created. Availability depends on what each station physically measures.
 
-### Attribution
-
-- Weather data: © [MeteoSwiss](https://www.meteoswiss.admin.ch/)
-- Forecast data: [Open-Meteo](https://open-meteo.com/) (MIT License)
-- Station metadata: [geo.admin.ch](https://data.geo.admin.ch/)
-
----
-
-## 🌍 Languages
-
-The integration includes full translations for all four Swiss national languages:
-
-| Language | File |
-|---|---|
-| English | `translations/en.json` |
-| Deutsch | `translations/de.json` |
-| Français | `translations/fr.json` |
-| Italiano | `translations/it.json` |
+| Sensor | Unit | Source |
+|--------|------|--------|
+| Temperature | °C | SwissMetNet |
+| Humidity | % | SwissMetNet |
+| Wind Speed | km/h | SwissMetNet |
+| Wind Direction | ° | SwissMetNet |
+| Wind Gust | km/h | SwissMetNet |
+| Pressure | hPa | SwissMetNet |
+| Dew Point | °C | SwissMetNet |
+| Sunshine Duration | min | SwissMetNet |
+| Global Radiation | W/m² | SwissMetNet |
+| Snow Depth | cm | SwissMetNet |
+| Foehn Index | Code | SwissMetNet |
+| Soil Temperature 5/10/20 cm | °C | SwissMetNet |
+| UV Index | Index | Open-Meteo |
+| PM2.5 / PM10 | μg/m³ | Open-Meteo AQI |
+| NO₂ / O₃ | μg/m³ | Open-Meteo AQI |
+| Pollen (Forecast) | grains/m³ | Open-Meteo AQI |
+| Pollen (Measured) | particles/m³ | MeteoSwiss |
+| Heating Degree Days | °C·d | SIA 381/3 |
 
 ---
 
-## ❓ FAQ
+## 🔗 Companion Card
 
-<details>
-<summary><b>Which data source should I choose?</b></summary>
-
-- **Open-Meteo**: Works anywhere on Earth. Best for general weather + forecast. No station needed.
-- **MeteoSwiss**: Uses official Swiss weather stations (SwissMetNet). Best if you want real measured data from a station near you. Only works for Switzerland.
-
-Both sources provide the forecast via Open-Meteo. The choice only affects current weather sensors.
-</details>
-
-<details>
-<summary><b>Why do I see two sets of pollen sensors?</b></summary>
-
-- **Forecast pollen** (Birch/Alder/Grass/Mugwort/Ragweed) comes from Open-Meteo's model — available everywhere.
-- **Measured pollen** (Birch/Alder/Hazel/Beech/Ash/Grass) comes from MeteoSwiss stations — actual measured concentrations, more accurate but only for Switzerland.
-</details>
-
-<details>
-<summary><b>The weather condition shows "partly cloudy" at night — is this normal?</b></summary>
-
-The integration resolves the current condition with a fallback chain: Open-Meteo current weather code → MeteoSwiss symbol → precipitation-based fallback → day/night fallback. If no precise data is available, a safe default is used.
-</details>
-
-<details>
-<summary><b>How do Heizgradtage (Heating Degree Days) work?</b></summary>
-
-Uses Swiss standard SIA 381/3: heating threshold is 12 °C daily mean. HGt = max(0, 12 − daily_mean). Heating season runs from October 1 to April 30.
-</details>
-
-<details>
-<summary><b>I'm outside Switzerland — can I use this?</b></summary>
-
-Yes! Select **Open-Meteo** as your data source and enter your coordinates. You'll get current weather, forecasts, air quality, and forecast pollen. MeteoSwiss alerts and measured pollen are Switzerland-only.
-</details>
+**[ha-meteoswiss-card](https://github.com/LNKtwo/ha-meteoswiss-card)** — iOS Weather inspired glassmorphism dashboard card with:
+- Animated weather backgrounds (rain, snow, hail, lightning, clouds)
+- Hourly charts (temperature, precipitation, sunshine, wind)
+- 7-day forecast diagram
+- Weather warnings with color-coded badges
+- Pollen levels
+- Swiss-specific values (Foehn, snow depth, freezing level, heating degree days)
 
 ---
 
-## 🆚 Comparison
+## 🛠️ Development
 
-| Feature | Met.no | OpenWeatherMap | Pirate Weather | **MeteoSwiss** |
-|---|:---:|:---:|:---:|:---:|
-| Swiss station data | ❌ | ❌ | ❌ | ✅ 293+ stations |
-| Official CH alerts | ❌ | ❌ | ❌ | ✅ |
-| Measured pollen | ❌ | ❌ | ❌ | ✅ 16 stations |
-| Foehn index | ❌ | ❌ | ❌ | ✅ |
-| Snow depth | ❌ | ❌ | ❌ | ✅ |
-| Heating degree days | ❌ | ❌ | ❌ | ✅ SIA 381/3 |
-| Free / no API key | ✅ | ❌ | ✅ | ✅ |
-| Forecast | ✅ | ✅ | ✅ | ✅ |
+```bash
+git clone https://github.com/LNKtwo/ha-meteoswiss.git
+cd ha-meteoswiss
+```
+
+Files are in `custom_components/meteoswiss/`. Test by symlinking into your HA config.
 
 ---
 
-## 📋 Requirements
+## 📝 License
 
-- Home Assistant **2024.7** or newer
-- Internet connection (cloud polling integration)
-
----
-
-## 📖 Documentation
-
-- [Full Sensor Reference](docs/SENSORS.md)
-- [API Sources & Attribution](docs/API_SOURCES.md)
-- [Changelog](CHANGELOG.md)
-- [Roadmap](ROADMAP.md)
-
----
-
-## 🤝 Support
-
-- **Bug reports:** [GitHub Issues](https://github.com/LNKtwo/ha-meteoswiss/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/LNKtwo/ha-meteoswiss/discussions)
-- **HACS:** Search "MeteoSwiss" in HACS
-
----
-
-## 📜 License
-
-[MIT](LICENSE)
-
----
-
-*Data: [MeteoSwiss](https://www.meteoswiss.admin.ch/) · Forecast: [Open-Meteo](https://open-meteo.com/) · Made with ❤️ for the Swiss HA community*
+MIT — see [LICENSE](LICENSE)
