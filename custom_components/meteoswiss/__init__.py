@@ -197,7 +197,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Create MeteoSwiss measured pollen coordinator
-    pollen_station = entry.options.get("pollen_station", "PBE")
+    pollen_station = entry.options.get("pollen_station", "PLZ")
     meteoswiss_pollen_coordinator = MeteoSwissPollenCoordinator(
         hass,
         station_id=pollen_station,
