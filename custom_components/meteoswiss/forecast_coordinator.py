@@ -80,7 +80,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             f"?latitude={self._latitude}"
             f"&longitude={self._longitude}"
             f"&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,windspeed_10m,winddirection_10m,weather_code,snowfall,freezing_level_height"
-            f"&forecast_days=5"
+            f"&forecast_hours=120"
             f"&daily=temperature_2m_mean"
             f"&timezone=Europe/Zurich"
         )
