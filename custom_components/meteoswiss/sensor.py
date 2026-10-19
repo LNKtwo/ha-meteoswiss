@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfLength,
+    UnitOfPrecipitationDepth,
     UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -134,6 +135,14 @@ SENSOR_DESCRIPTIONS: Final[tuple[MeteoSwissSensorEntityDescription, ...]] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPressure.HPA,
         value_key=SENSOR_PRESSURE,
+    ),
+    MeteoSwissSensorEntityDescription(
+        key=SENSOR_PRECIPITATION,
+        translation_key="precipitation",
+        device_class=SensorDeviceClass.PRECIPITATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPrecipitationDepth.MILLIMETERS,
+        value_key=SENSOR_PRECIPITATION,
     ),
     MeteoSwissSensorEntityDescription(
         key=SENSOR_WIND_GUST,
