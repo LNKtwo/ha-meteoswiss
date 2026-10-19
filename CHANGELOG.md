@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [8.1.2] — 2026-10-19
+
+Community release: all fixes and improvements below were contributed by @martins-netizen (12 pull requests). Thank you!
+
+### Fixed
+- **Precipitation sensor entity was never created** — value was parsed but missing from `SENSOR_DESCRIPTIONS` (#1, #4)
+- **Hourly forecast started at midnight** — Open-Meteo request now uses `forecast_hours=120`, so the series starts at the current hour (#2, #8)
+- **Daily forecast had no minimum temperature** — `templow` is now exposed via `weather.get_forecasts` (#6, #7)
+- **HGT formula corrected to HGT 12/20** — heating days (daily mean ≤ 12 °C) contribute `20 °C − daily mean`; today's value uses the native Open-Meteo daily mean (`temperature_2m_mean`) instead of partial hourly averages (#10, #13)
+- **Ground-frost warnings (warnType 5) showed "Unknown (5)"** — now mapped to "Ground Frost", with regression tests (#17, #18)
+
+### Changed
+- **Breaking:** Season HGT sensor removed — it accumulated a 5-day forecast, not a real season total. The legacy entity is removed from the registry automatically; HGT now lives on a "Calculated Weather Metrics" device (#10, #13)
+- **Breaking:** Forecasts and pollen now use the Home Assistant installation location instead of observation-station coordinates; MeteoSwiss observations remain station-based (#14)
+- Forecasts explicitly pinned to the `meteoswiss_icon_seamless` Open-Meteo model (#9)
+- Optional coordinators (forecast, alerts, pollen) refresh in the background — faster and more robust setup (#16)
+- Sensor entities initialize from already-available coordinator data (#11)
+- Duplicate config entries for the same station/postal code are prevented (`already_configured`) (#12)
+- Device metadata aligned with the actual data source (Open-Meteo pollen/air-quality no longer branded MeteoSwiss) (#15)
+- New config entry diagnostics with location redaction (#5)
+
 ## [8.0.0] — 2026-07-31
 
 ### Tier 3 — Full Documentation, Code Polish, Production Ready

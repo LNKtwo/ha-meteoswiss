@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Cette station de mesure MeteoSwiss et ce code postal sont déjà configurés."
+    },
     "step": {
       "user": {
         "title": "Configuration de l'intégration météo",
@@ -69,8 +72,7 @@
       "pm10": { "name": "PM10" },
       "nitrogen_dioxide": { "name": "Dioxyde d'azote" },
       "ozone": { "name": "Ozone" },
-      "heating_degree_days": { "name": "Degrés-jours de chauffage" },
-      "season_heating_degree_days": { "name": "Degrés-jours de chauffage (saison)" },
+      "heating_degree_days": { "name": "Degrés-jours de chauffage 12/20 aujourd'hui (prévisions)" },
       "pollen_birch": { "name": "Pollen de bouleau" },
       "pollen_alder": { "name": "Pollen d'aulne" },
       "pollen_grass": { "name": "Pollen de graminées" },

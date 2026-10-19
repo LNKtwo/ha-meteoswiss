@@ -27,7 +27,7 @@ Companion card: **[ha-meteoswiss-card](https://github.com/LNKtwo/ha-meteoswiss-c
 | 🌸 | **Pollen (Forecast)** | Open-Meteo AQI | Birch, alder, grass, mugwort, ragweed forecast concentrations |
 | 🔬 | **Pollen (Measured)** | MeteoSwiss ogd-pollen | Hourly measured pollen from 16 Swiss stations (birch, alder, hazel, beech, ash, grass) |
 | 🌫️ | **Air Quality** | Open-Meteo AQI | PM2.5, PM10, NO₂, O₃ concentrations |
-| 🏠 | **Heating Degree Days** | SIA 381/3 | Daily and seasonal Heizgradtage for energy monitoring |
+| 🏠 | **Heating Degree Days** | HGT 12/20 | Daily forecast-based Heizgradtage for energy monitoring |
 | 🗺️ | **Stations Map** | MeteoSwiss | GeoJSON of all weather stations for map overlays |
 
 ---
@@ -116,7 +116,7 @@ All sensors are auto-created. Availability depends on what each station physical
 | NO₂ / O₃ | μg/m³ | Open-Meteo AQI |
 | Pollen (Forecast) | grains/m³ | Open-Meteo AQI |
 | Pollen (Measured) | particles/m³ | MeteoSwiss |
-| Heating Degree Days | °C·d | SIA 381/3 |
+| Heating Degree Days | °C·d | HGT 12/20 (forecast) |
 
 ---
 

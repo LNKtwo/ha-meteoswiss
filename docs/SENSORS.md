@@ -78,16 +78,20 @@ Hourly measured pollen concentrations (No/m³) from Swiss pollen stations.
 
 Attributes include: current value, 24h history, station ID, source attribution.
 
-### Heating Degree Days (SIA 381/3)
+### Heating Degree Days (HGT 12/20, forecast)
 
 | Sensor Key | Name | Unit | State Class | Description |
 |---|---|:---:|---|---|
-| `heating_degree_days` | Heating Degree Days | °C·d | Measurement | Daily HGt = max(0, 12 − daily_mean_temp) |
-| `season_heating_degree_days` | Season Heating Degree Days | °C·d | Total Increasing | Accumulated HGt since Oct 1 |
+| `heating_degree_days` | Heating degree days 12/20 today (forecast) | °C·d | Measurement | Daily HGT = 20 °C − daily mean, on days with mean ≤ 12 °C |
 
-**Standard:** SIA 381/3 — Swiss heating degree days.
-**Threshold:** 12 °C daily mean temperature.
-**Season:** October 1 – April 30.
+**Standard:** Swiss HGT 12/20 heating degree days.
+**Threshold:** 12 °C daily mean temperature (heating day).
+**Reference:** 20 °C indoor reference temperature.
+**Source:** Calculated from the Open-Meteo daily mean forecast (`temperature_2m_mean`) and exposed on the dedicated "Calculated Weather Metrics" device — not a MeteoSwiss station measurement.
+
+> **Note:** The former `season_heating_degree_days` sensor was removed in v8.1.2.
+> It could only accumulate the 5-day forecast, which is not a meaningful season
+> total. A genuine season value would require historical daily data.
 
 ### Diagnostic Sensors
 

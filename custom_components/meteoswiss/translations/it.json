@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Questa stazione MeteoSwiss e questo CAP sono già configurati."
+    },
     "step": {
       "user": {
         "title": "Configurazione integrazione meteo",
@@ -69,8 +72,7 @@
       "pm10": { "name": "PM10" },
       "nitrogen_dioxide": { "name": "Diossido di azoto" },
       "ozone": { "name": "Ozono" },
-      "heating_degree_days": { "name": "Gradi giorno di riscaldamento" },
-      "season_heating_degree_days": { "name": "Gradi giorno di riscaldamento (stagione)" },
+      "heating_degree_days": { "name": "Gradi giorno di riscaldamento 12/20 oggi (previsioni)" },
       "pollen_birch": { "name": "Pollini di betulla" },
       "pollen_alder": { "name": "Pollini di ontano" },
       "pollen_grass": { "name": "Pollini di graminacee" },
