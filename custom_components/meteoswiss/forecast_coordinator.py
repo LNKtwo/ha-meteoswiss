@@ -81,6 +81,7 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
             f"&longitude={self._longitude}"
             f"&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,windspeed_10m,winddirection_10m,weather_code,snowfall,freezing_level_height"
             f"&forecast_days=5"
+            f"&daily=temperature_2m_mean"
             f"&timezone=Europe/Zurich"
         )
 
@@ -136,6 +137,15 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
         snowfall = hourly.get("snowfall", [])
         freezing_level = hourly.get("freezing_level_height", [])
 
+        daily = data.get("daily", {})
+        daily_times = daily.get("time", [])
+        daily_mean_temps = daily.get("temperature_2m_mean", [])
+        daily_mean_by_day = {
+            str(day): daily_mean_temps[i]
+            for i, day in enumerate(daily_times)
+            if i < len(daily_mean_temps)
+        }
+
         # Build forecast list (5 days = 120 hours for daily forecast)
         # Determine day/night for each hour based on time
         for i in range(min(120, len(times))):
@@ -162,6 +172,9 @@ class MeteoSwissForecastCoordinator(DataUpdateCoordinator[list[dict[str, Any]]])
                 "condition": self._map_open_meteo_condition(weather_code, is_night=is_night),
                 "snowfall": snowfall[i] if i < len(snowfall) else None,
                 "freezing_level_height": freezing_level[i] if i < len(freezing_level) else None,
+                "daily_temperature_mean": daily_mean_by_day.get(times[i][:10])
+                if i < len(times)
+                else None,
             }
             forecast_data.append(entry)
 
