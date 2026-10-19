@@ -17,11 +17,13 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_POSTAL_CODE,
+    CONF_POLLEN_STATION,
     CONF_STATION_ID,
     CONF_STATION_NAME,
     CONF_UPDATE_INTERVAL,
     DATA_SOURCE_METEOSWISS,
     DATA_SOURCE_OPENMETEO,
+    DEFAULT_POLLEN_STATION,
     DOMAIN,
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
@@ -160,7 +162,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Create MeteoSwiss measured pollen coordinator
-    pollen_station = entry.options.get("pollen_station", "PLZ")
+    pollen_station = entry.options.get(
+        CONF_POLLEN_STATION, DEFAULT_POLLEN_STATION
+    )
     meteoswiss_pollen_coordinator = MeteoSwissPollenCoordinator(
         hass,
         station_id=pollen_station,

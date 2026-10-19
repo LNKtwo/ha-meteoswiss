@@ -18,14 +18,17 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_POSTAL_CODE,
+    CONF_POLLEN_STATION,
     CONF_STATION_ID,
     CONF_STATION_NAME,
     CONF_UPDATE_INTERVAL,
     DATA_SOURCE_METEOSWISS,
     DATA_SOURCE_OPENMETEO,
+    DEFAULT_POLLEN_STATION,
     DEFAULT_UPDATE_INTERVAL_SEC,
     DOMAIN,
     MIN_UPDATE_INTERVAL,
+    POLLEN_STATIONS,
     STATIONS_METADATA_URL,
 )
 
@@ -245,24 +248,12 @@ class MeteoSwissOptionsFlow(OptionsFlow):
                         vol.Coerce(int),
                         vol.Range(min=MIN_UPDATE_INTERVAL),
                     ),
-                    vol.Optional("pollen_station", default=self.config_entry.options.get("pollen_station", "PBE")): vol.In({
-                        "PBE": "Bern (PBE)",
-                        "PBS": "Basel (PBS)",
-                        "PBU": "Buchs SG (PBU)",
-                        "PCF": "La Chaux-de-Fonds (PCF)",
-                        "PDS": "Davos / Wolfgang (PDS)",
-                        "PGE": "Genève (PGE)",
-                        "PLO": "Locarno / Monti (PLO)",
-                        "PLS": "Lausanne (PLS)",
-                        "PLU": "Lugano (PLU)",
-                        "PLZ": "Luzern (PLZ)",
-                        "PMU": "Münsterlingen (PMU)",
-                        "PNE": "Neuchâtel (PNE)",
-                        "PPY": "Payerne (PPY)",
-                        "PSN": "Sion (PSN)",
-                        "PZH": "Zürich (PZH)",
-                        "BLR": "Coldrerio / Mezzana (BLR)",
-                    }),
+                    vol.Optional(
+                        CONF_POLLEN_STATION,
+                        default=self.config_entry.options.get(
+                            CONF_POLLEN_STATION, DEFAULT_POLLEN_STATION
+                        ),
+                    ): vol.In(POLLEN_STATIONS),
                 }),
             )
 

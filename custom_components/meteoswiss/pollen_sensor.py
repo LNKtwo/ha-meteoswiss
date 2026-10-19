@@ -15,10 +15,13 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
-    ATTRIBUTION,
     CONF_POSTAL_CODE,
     CONF_STATION_NAME,
     DOMAIN,
+    OPENMETEO_AIR_QUALITY_ATTRIBUTION,
+    OPENMETEO_AIR_QUALITY_DEVICE_NAME,
+    OPENMETEO_AIR_QUALITY_MANUFACTURER,
+    OPENMETEO_AIR_QUALITY_MODEL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,12 +153,12 @@ class MeteoSwissPollenSensor(SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_pollen_{description.pollen_type}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"pollen_{entry.entry_id}")},
-            name=f"MeteoSwiss Pollen - {station_name}",
-            manufacturer="MeteoSwiss",
-            model="Pollen Forecast",
+            name=OPENMETEO_AIR_QUALITY_DEVICE_NAME,
+            manufacturer=OPENMETEO_AIR_QUALITY_MANUFACTURER,
+            model=OPENMETEO_AIR_QUALITY_MODEL,
         )
         self._attr_has_entity_name = True
-        self._attr_attribution = ATTRIBUTION
+        self._attr_attribution = OPENMETEO_AIR_QUALITY_ATTRIBUTION
         try:
             self._attr_entity_category = EntityCategory.HEALTH
         except AttributeError:

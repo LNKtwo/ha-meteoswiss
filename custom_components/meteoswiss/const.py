@@ -86,8 +86,32 @@ CONDITION_SUNNY = "sunny"
 # Source attribution
 ATTRIBUTION: Final = "Source: MeteoSwiss"
 
-# Pollen station default
+# Pollen station configuration
 CONF_POLLEN_STATION: Final = "pollen_station"
+DEFAULT_POLLEN_STATION: Final = "PLZ"
+POLLEN_STATIONS: Final[dict[str, str]] = {
+    "PBE": "Bern (PBE)",
+    "PBS": "Basel (PBS)",
+    "PBU": "Buchs SG (PBU)",
+    "PCF": "La Chaux-de-Fonds (PCF)",
+    "PDS": "Davos / Wolfgang (PDS)",
+    "PGE": "Genève (PGE)",
+    "PLO": "Locarno / Monti (PLO)",
+    "PLS": "Lausanne (PLS)",
+    "PLU": "Lugano (PLU)",
+    "PLZ": "Luzern (PLZ)",
+    "PMU": "Münsterlingen (PMU)",
+    "PNE": "Neuchâtel (PNE)",
+    "PPY": "Payerne (PPY)",
+    "PSN": "Sion (PSN)",
+    "PZH": "Zürich (PZH)",
+    "BLR": "Coldrerio / Mezzana (BLR)",
+}
+
+OPENMETEO_AIR_QUALITY_DEVICE_NAME: Final = "Open-Meteo Air Quality & Pollen"
+OPENMETEO_AIR_QUALITY_MANUFACTURER: Final = "Open-Meteo"
+OPENMETEO_AIR_QUALITY_MODEL: Final = "Air Quality API"
+OPENMETEO_AIR_QUALITY_ATTRIBUTION: Final = "Source: Open-Meteo Air Quality API"
 
 # API timeout (30 seconds for all requests)
 DEFAULT_API_TIMEOUT: Final = aiohttp.ClientTimeout(total=30)

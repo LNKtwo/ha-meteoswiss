@@ -48,9 +48,16 @@ from .cache import get_all_cache_stats
 from .const import (
     ATTRIBUTION,
     CONF_DATA_SOURCE,
+    CONF_POLLEN_STATION,
     CONF_STATION_NAME,
     DATA_SOURCE_OPENMETEO,
+    DEFAULT_POLLEN_STATION,
     DOMAIN,
+    OPENMETEO_AIR_QUALITY_ATTRIBUTION,
+    OPENMETEO_AIR_QUALITY_DEVICE_NAME,
+    OPENMETEO_AIR_QUALITY_MANUFACTURER,
+    OPENMETEO_AIR_QUALITY_MODEL,
+    POLLEN_STATIONS,
     SENSOR_DEW_POINT,
     SENSOR_FOEHN_INDEX,
     SENSOR_GLOBAL_RADIATION,
@@ -244,9 +251,20 @@ async def async_setup_entry(
     # Add MeteoSwiss measured pollen sensors
     ms_pollen_coordinator = hass.data[DOMAIN][entry.entry_id].get("meteoswiss_pollen_coordinator")
     if ms_pollen_coordinator:
+        pollen_station_code = entry.options.get(
+            CONF_POLLEN_STATION, DEFAULT_POLLEN_STATION
+        )
+        pollen_station_label = POLLEN_STATIONS.get(
+            pollen_station_code, pollen_station_code
+        )
         for description in MS_POLLEN_SENSOR_DESCRIPTIONS:
             entities.append(
-                MeteoSwissMeasuredPollenSensor(ms_pollen_coordinator, entry, description, station_name)
+                MeteoSwissMeasuredPollenSensor(
+                    ms_pollen_coordinator,
+                    entry,
+                    description,
+                    pollen_station_label,
+                )
             )
         _LOGGER.debug("Added %d MeteoSwiss measured pollen sensors", len(MS_POLLEN_SENSOR_DESCRIPTIONS))
 
@@ -433,12 +451,12 @@ class MeteoSwissAirQualitySensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"pollen_{entry.entry_id}")},
-            name=f"MeteoSwiss Air Quality - {station_name}",
-            manufacturer="MeteoSwiss",
-            model="Open-Meteo Air Quality",
+            name=OPENMETEO_AIR_QUALITY_DEVICE_NAME,
+            manufacturer=OPENMETEO_AIR_QUALITY_MANUFACTURER,
+            model=OPENMETEO_AIR_QUALITY_MODEL,
         )
         self._attr_has_entity_name = True
-        self._attr_attribution = "Source: Open-Meteo Air Quality API"
+        self._attr_attribution = OPENMETEO_AIR_QUALITY_ATTRIBUTION
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -617,14 +635,14 @@ class MeteoSwissMeasuredPollenSensor(CoordinatorEntity, SensorEntity):
         coordinator: DataUpdateCoordinator,
         entry: ConfigEntry,
         description: MS_PollenSensorDescription,
-        station_name: str,
+        pollen_station_label: str,
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_ms_pollen_{description.pollen_type}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"ms_pollen_{entry.entry_id}")},
-            name=f"MeteoSwiss Pollen (Measured) - {station_name}",
+            name=f"MeteoSwiss Pollen (Measured) - {pollen_station_label}",
             manufacturer="MeteoSwiss",
             model="Pollen Station",
         )
