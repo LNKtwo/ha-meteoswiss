@@ -1,6 +1,7 @@
 """The meteoswiss integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import aiohttp
@@ -88,6 +89,14 @@ async def _load_station_coordinates(station_id: str, session: aiohttp.ClientSess
         return None, None
 
 
+async def _async_refresh_optional_coordinators(*coordinators) -> None:
+    """Refresh optional coordinators without delaying config entry setup."""
+    await asyncio.gather(
+        *(coordinator.async_refresh() for coordinator in coordinators),
+        return_exceptions=True,
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MeteoSwiss integration from a config entry."""
     _LOGGER.info("Setting up MeteoSwiss integration for station %s", entry.data.get(CONF_STATION_NAME))
@@ -167,9 +176,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data for current weather
     await coordinator.async_config_entry_first_refresh()
 
-    # Fetch initial data for forecast
-    await forecast_coordinator.async_config_entry_first_refresh()
-
     # Create alerts API and coordinator
     alerts_api = MeteoSwissAlertsAPI(session=shared_session)
     alerts_api.postal_code = post_code
@@ -205,18 +211,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session=shared_session,
     )
 
-    # Fetch initial alerts data
-    await alerts_coordinator.async_config_entry_first_refresh()
-
-    # Fetch initial pollen data
-    await pollen_coordinator.async_config_entry_first_refresh()
-
-    # Fetch initial MeteoSwiss measured pollen data
-    try:
-        await meteoswiss_pollen_coordinator.async_config_entry_first_refresh()
-    except Exception as err:
-        _LOGGER.warning("Failed to fetch initial MeteoSwiss pollen data: %s", err)
-
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
     hass.data[DOMAIN][entry.entry_id]["forecast_coordinator"] = forecast_coordinator
     hass.data[DOMAIN][entry.entry_id]["alerts_coordinator"] = alerts_coordinator
@@ -227,6 +221,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Refresh optional data in parallel after entities are registered
+    entry.async_create_background_task(
+        hass,
+        _async_refresh_optional_coordinators(
+            forecast_coordinator,
+            alerts_coordinator,
+            pollen_coordinator,
+            meteoswiss_pollen_coordinator,
+        ),
+        "MeteoSwiss optional initial refresh",
+    )
 
     # Update listeners for reload
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
