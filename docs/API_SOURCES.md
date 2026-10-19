@@ -53,6 +53,7 @@ This document describes all data sources used by the MeteoSwiss integration.
 | 2 | Rain |
 | 3 | Snow |
 | 4 | Wind |
+| 5 | Ground Frost |
 | 10 | Forest Fire |
 | 11 | Flood |
 

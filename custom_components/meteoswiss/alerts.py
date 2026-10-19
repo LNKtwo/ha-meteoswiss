@@ -20,6 +20,7 @@ WARN_TYPE_THUNDERSTORM = 1
 WARN_TYPE_RAIN = 2
 WARN_TYPE_SNOW = 3
 WARN_TYPE_WIND = 4
+WARN_TYPE_GROUND_FROST = 5
 WARN_TYPE_FOREST_FIRE = 10
 WARN_TYPE_FLOOD = 11
 
@@ -244,6 +245,7 @@ class MeteoSwissAlertsAPI:
             WARN_TYPE_RAIN: "Rain",
             WARN_TYPE_SNOW: "Snow",
             WARN_TYPE_WIND: "Wind",
+            WARN_TYPE_GROUND_FROST: "Ground Frost",
             WARN_TYPE_FOREST_FIRE: "Forest Fire",
             WARN_TYPE_FLOOD: "Flood",
         }
