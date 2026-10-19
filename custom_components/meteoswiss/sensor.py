@@ -302,6 +302,11 @@ class MeteoSwissSensor(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Senso
         )
         self._attr_has_entity_name = True
         self._attr_attribution = ATTRIBUTION
+        self._attr_native_value = (
+            coordinator.data.get(description.value_key)
+            if coordinator.data
+            else None
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
