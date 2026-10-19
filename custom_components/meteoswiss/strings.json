@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "This MeteoSwiss observation station and postal code are already configured."
+    },
     "step": {
       "user": {
         "title": "Weather Integration Setup",

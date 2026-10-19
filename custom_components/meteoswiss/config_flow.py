@@ -162,8 +162,35 @@ class MeteoSwissConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
         # Process form submission
-        post_code = user_input[CONF_POSTAL_CODE]
-        station_id = user_input[CONF_STATION_ID]
+        post_code = str(user_input[CONF_POSTAL_CODE]).strip()
+        station_id = str(user_input[CONF_STATION_ID]).strip().lower()
+
+        # Prevent duplicate entries for the same MeteoSwiss station and
+        # alert postcode. Existing entries do not have a unique ID yet.
+        for existing_entry in self._async_current_entries():
+            existing_data = existing_entry.data
+            if (
+                existing_data.get(CONF_DATA_SOURCE, DATA_SOURCE_METEOSWISS)
+                != DATA_SOURCE_METEOSWISS
+            ):
+                continue
+
+            existing_station = str(
+                existing_data.get(CONF_STATION_ID, "")
+            ).strip().lower()
+            existing_post_code = str(
+                existing_data.get(CONF_POSTAL_CODE, "")
+            ).strip()
+
+            if existing_station == station_id and existing_post_code == post_code:
+                return self.async_abort(reason="already_configured")
+
+        # Give new entries a stable Home Assistant unique ID as an additional
+        # guard against duplicate setup attempts.
+        await self.async_set_unique_id(
+            f"{DATA_SOURCE_METEOSWISS}:{station_id}:{post_code}"
+        )
+        self._abort_if_unique_id_configured()
 
         # Find station details
         stations = await self._load_stations()

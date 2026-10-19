@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Diese MeteoSwiss-Messstation und PLZ sind bereits konfiguriert."
+    },
     "step": {
       "user": {
         "title": "MeteoSwiss Einrichtung",
