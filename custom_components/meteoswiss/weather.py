@@ -433,9 +433,16 @@ class MeteoSwissWeather(CoordinatorEntity[MeteoSwissDataUpdateCoordinator], Weat
                 ]
                 representative = midday_entries[0] if midday_entries else hourly_entries[0]
 
+                temperatures = [
+                    entry.get("temperature")
+                    for entry in hourly_entries
+                    if entry.get("temperature") is not None
+                ]
+
                 ha_forecast.append(Forecast(
                     datetime=representative.get("datetime"),
                     temperature=representative.get("temperature"),
+                    native_templow=min(temperatures) if temperatures else None,
                     precipitation=sum(e.get("precipitation", 0) for e in hourly_entries),
                     precipitation_probability=max(e.get("precipitation_probability", 0) for e in hourly_entries),
                     wind_speed=representative.get("wind_speed"),
