@@ -23,7 +23,6 @@ from .const import (
     DATA_SOURCE_METEOSWISS,
     DATA_SOURCE_OPENMETEO,
     DOMAIN,
-    STATIONS_METADATA_URL,
 )
 from .coordinator import MeteoSwissDataUpdateCoordinator
 from .forecast_coordinator import MeteoSwissForecastCoordinator
@@ -39,54 +38,28 @@ PLATFORMS: list[Platform] = [
 ]
 
 
-async def _load_station_coordinates(station_id: str, session: aiohttp.ClientSession) -> tuple[float | None, float | None]:
-    """Load station coordinates from MeteoSwiss metadata CSV."""
-    try:
-        async with session.get(STATIONS_METADATA_URL) as response:
-            if response.status != 200:
-                _LOGGER.error("Failed to load stations: %s", response.status)
-                return None, None
+def _get_forecast_coordinates(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    data_source: str,
+) -> tuple[float, float]:
+    """Return coordinates used for forecasts and location-based pollen data."""
+    if data_source == DATA_SOURCE_METEOSWISS:
+        # Observations remain tied to the selected MeteoSwiss station, while
+        # forecasts describe the Home Assistant installation location.
+        return float(hass.config.latitude), float(hass.config.longitude)
 
-            content_bytes = await response.read()
+    latitude = entry.data.get(CONF_LATITUDE)
+    longitude = entry.data.get(CONF_LONGITUDE)
 
-        # Try different encodings for CSV
-        lines = None
-        for encoding in ['iso-8859-1', 'latin-1', 'cp1252', 'utf-8-sig', 'utf-8']:
-            try:
-                decoded = content_bytes.decode(encoding)
-                lines = decoded.strip().split("\n")
-                if len(lines) > 10:
-                    break
-            except UnicodeDecodeError:
-                continue
+    # Open-Meteo entries are explicitly location-based. Fall back to the
+    # Home Assistant location only for older or incomplete entries.
+    if latitude is None:
+        latitude = hass.config.latitude
+    if longitude is None:
+        longitude = hass.config.longitude
 
-        if not lines or len(lines) < 2:
-            _LOGGER.error("Failed to decode stations CSV")
-            return None, None
-
-        # Parse CSV to find station coordinates
-        station_id_lower = station_id.lower()
-        for line in lines[1:]:
-            parts = line.split(";")
-            if len(parts) > 15:
-                csv_station_id = parts[0].strip().lower()
-                if csv_station_id == station_id_lower:
-                    # Coordinates at indices 14 (lat) and 15 (lon)
-                    try:
-                        lat = float(parts[14]) if parts[14] else None
-                        lon = float(parts[15]) if parts[15] else None
-                        _LOGGER.debug("Found coordinates for station %s: lat=%s, lon=%s", station_id, lat, lon)
-                        return lat, lon
-                    except (ValueError, TypeError) as e:
-                        _LOGGER.error("Could not parse coordinates: %s", e)
-                        return None, None
-
-        _LOGGER.warning("Station %s not found in metadata", station_id)
-        return None, None
-
-    except Exception as err:
-        _LOGGER.error("Error loading station coordinates: %s", err)
-        return None, None
+    return float(latitude), float(longitude)
 
 
 async def _async_refresh_optional_coordinators(*coordinators) -> None:
@@ -115,27 +88,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data_source = entry.data.get(CONF_DATA_SOURCE, DATA_SOURCE_METEOSWISS)
     station_id = entry.data.get(CONF_STATION_ID)
     post_code = entry.data.get(CONF_POSTAL_CODE)
+    lat, lon = _get_forecast_coordinates(hass, entry, data_source)
 
     if data_source == DATA_SOURCE_OPENMETEO:
         # Use Open-Meteo API for current weather AND forecast
-        latitude = entry.data.get(CONF_LATITUDE, 47.05)
-        longitude = entry.data.get(CONF_LONGITUDE, 8.31)
-        lat = latitude
-        lon = longitude
-
         coordinator = OpenMeteoDataUpdateCoordinator(
             hass,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=lat,
+            longitude=lon,
             update_interval=update_interval,
             session=shared_session,
         )
-        _LOGGER.debug("Using Open-Meteo API for lat=%s, lon=%s", latitude, longitude)
+        _LOGGER.debug("Using Open-Meteo API for lat=%s, lon=%s", lat, lon)
 
         forecast_coordinator = MeteoSwissForecastCoordinator(
             hass,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=lat,
+            longitude=lon,
             post_code=post_code,
             update_interval=3600,
             session=shared_session,
@@ -151,17 +120,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         _LOGGER.debug("Using MeteoSwiss API for station %s", station_id)
 
-        # Load station coordinates for forecast (Open-Meteo)
-        # IMPORTANT: Use station coordinates, not entry coordinates (user's location)
-        lat, lon = await _load_station_coordinates(station_id, shared_session)
-
-        if lat is None or lon is None:
-            _LOGGER.warning("Could not load station coordinates for forecast")
-            # Fallback to entry coordinates
-            lat = entry.data.get(CONF_LATITUDE)
-            lon = entry.data.get(CONF_LONGITUDE)
-
-        # Forecast coordinator (uses Open-Meteo with station coordinates)
+        # Forecasts are location-based and intentionally independent from
+        # the selected observation station.
         forecast_coordinator = MeteoSwissForecastCoordinator(
             hass,
             station_id=station_id,
@@ -171,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             update_interval=3600,
             session=shared_session,
         )
-        _LOGGER.debug("Forecast coordinator using Open-Meteo with station coordinates: lat=%s, lon=%s", lat, lon)
+        _LOGGER.debug("Forecast coordinator using Home Assistant location: lat=%s, lon=%s", lat, lon)
 
     # Fetch initial data for current weather
     await coordinator.async_config_entry_first_refresh()
@@ -190,14 +150,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create pollen API and coordinator (using Open-Meteo Air Quality API)
     from .pollen_coordinator_openmeteo import OpenMeteoPollenCoordinator
 
-    # Get coordinates for pollen (use forecast coordinates)
-    pollen_latitude = lat if lat else entry.data.get(CONF_LATITUDE, 47.05)
-    pollen_longitude = lon if lon else entry.data.get(CONF_LONGITUDE, 8.31)
-
+    # Location-based pollen forecast follows the same coordinates as weather.
     pollen_coordinator = OpenMeteoPollenCoordinator(
         hass,
-        latitude=pollen_latitude,
-        longitude=pollen_longitude,
+        latitude=lat,
+        longitude=lon,
         update_interval=1800,  # 30 minutes
         session=shared_session,
     )
